@@ -63,15 +63,12 @@ export default class FieldController extends cc.Component {
         cc.log(str);
     }
 
-    public getPositionOfCell(coords: Coords): cc.Vec2 {
-        return cc.v2(62 * (coords.col - 4), 62 * (4 - coords.row));
-    }
-
     public createCell(coords: Coords, typeID: number): Cell {
         let cell = cc.instantiate(this.cellPrefab).getComponent(Cell);
         cell.node.parent = this.node;
         cell.setCoords(coords);
         cell.setType(typeID);
+        cell.changePosition();
         return cell;
     }
 
