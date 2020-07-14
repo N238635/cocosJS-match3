@@ -13,6 +13,7 @@ export default class FieldController extends cc.Component {
     private _fieldLayout: number[][] = [];
     private _rows: number = 0;
     private _columns: number = 0;
+    private _cellSize: number = 0;
 
     private _leftMargin: number;
     private _topMargin: number;
@@ -40,6 +41,7 @@ export default class FieldController extends cc.Component {
     public createCell(coords: Coords, isDisabled: boolean, isDark: boolean): Cell {
         let cell = cc.instantiate(this.cellPrefab).getComponent(Cell);
         cell.node.parent = this.node;
+        cell.setSize(this._cellSize);
         cell.node.setPosition(this.getPositionOfCoords(coords));
         //cell.setCoords(coords);
         cell.isDisabled = isDisabled;
@@ -51,6 +53,7 @@ export default class FieldController extends cc.Component {
         this._fieldLayout = this.config.json.fieldLayout;
         this._rows = this.config.json.rows;
         this._columns = this.config.json.columns;
+        this._cellSize = this.config.json.cellSize;
 
         this._leftMargin = (this.node.parent.width - this.node.width) / 2;
         this._topMargin = (this.node.parent.height - this.node.height) / 2;
@@ -60,8 +63,8 @@ export default class FieldController extends cc.Component {
     }
 
     private getPositionOfCoords(coords: Coords): cc.Vec2 {
-        let absoluteX = this._leftMargin + (coords.col + 0.5) * this.cellPrefab.data.width;
-        let absoluteY = this.node.parent.height - (this._topMargin + (coords.row + 0.5) * this.cellPrefab.data.height);
+        let absoluteX = this._leftMargin + (coords.col + 0.5) * this._cellSize;
+        let absoluteY = this.node.parent.height - (this._topMargin + (coords.row + 0.5) * this._cellSize);
         return this.node.convertToNodeSpaceAR(cc.v2(absoluteX, absoluteY));
     }
 
