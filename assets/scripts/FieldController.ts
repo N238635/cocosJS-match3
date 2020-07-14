@@ -1,5 +1,6 @@
 import Coords from "./Coords";
 import Cell from "./Cell";
+import GameController from "./GameController";
 
 const { ccclass, property } = cc._decorator;
 
@@ -12,7 +13,10 @@ export default class FieldController extends cc.Component {
     private _fieldLayout: number[][] = [];
     private _rows: number = 0;
     private _columns: number = 0;
-    
+
+    private _leftMargin: number;
+    private _topMargin: number;
+
     private _field: Cell[][] = [];
 
     public everyCell(callback: (cell: Cell) => void): void {
@@ -36,7 +40,8 @@ export default class FieldController extends cc.Component {
     public createCell(coords: Coords, isDisabled: boolean, isDark: boolean): Cell {
         let cell = cc.instantiate(this.cellPrefab).getComponent(Cell);
         cell.node.parent = this.node;
-        cell.setCoords(coords);
+        cell.node.setPosition(this.getPositionOfCoords(coords));
+        //cell.setCoords(coords);
         cell.isDisabled = isDisabled;
         cell.isDark = isDark;
         return cell;
@@ -47,17 +52,28 @@ export default class FieldController extends cc.Component {
         this._rows = this.config.json.rows;
         this._columns = this.config.json.columns;
 
+        this._leftMargin = (this.node.parent.width - this.node.width) / 2;
+        this._topMargin = (this.node.parent.height - this.node.height) / 2;
+
         this.printField();
         this.initField();
     }
 
+    private getPositionOfCoords(coords: Coords): cc.Vec2 {
+        let absoluteX = this._leftMargin + (coords.col + 0.5) * this.cellPrefab.data.width;
+        let absoluteY = this.node.parent.height - (this._topMargin + (coords.row + 0.5) * this.cellPrefab.data.height);
+        return this.node.convertToNodeSpaceAR(cc.v2(absoluteX, absoluteY));
+    }
+
     // Заполняем поле клетками
     private initField(): void {
+        let isDark: boolean;
+        let isDisabled: boolean;
         for (let row = 0; row < this._rows; row++) {
             this._field.push([]);
             for (let col = 0; col < this._columns; col++) {
-                let isDisabled = (this._fieldLayout[row][col] === 0);
-                let isDark = (this.isEven(row) === this.isEven(col));
+                isDisabled = (this._fieldLayout[row][col] === 0);
+                isDark = (this.isEven(row) === this.isEven(col));
                 this._field[row].push(
                     this.createCell(new Coords(col, row), isDisabled, isDark)
                 );
