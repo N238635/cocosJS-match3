@@ -12,10 +12,10 @@ export default class FieldController extends cc.Component {
     private _fieldLayout: number[][] = [];
     private _rows: number = 0;
     private _columns: number = 0;
-
+    
     private _field: Cell[][] = [];
 
-    private everyCell(callback: (cell: Cell) => void): void {
+    public everyCell(callback: (cell: Cell) => void): void {
         for (let row = 0; row < this._rows; row++) {
             for (let col = 0; col < this._columns; col++) {
                 callback(this.getCell(col, row));
@@ -24,7 +24,7 @@ export default class FieldController extends cc.Component {
     }
 
     public getCell(coords: Coords | number, row?: number): Cell {
-        const isInvalidType: boolean = (typeof(coords) === 'number');
+        const isInvalidType: boolean = (typeof (coords) === 'number');
         const column = isInvalidType && (coords as number);
 
         let realCoords = isInvalidType ? new Coords(column, row) : (coords as Coords);
@@ -33,8 +33,22 @@ export default class FieldController extends cc.Component {
         return this._field[realCoords.col][realCoords.row];
     }
 
-    private isEven(n: number): boolean {
-        return n % 2 === 0;
+    public createCell(coords: Coords, isDisabled: boolean, isDark: boolean): Cell {
+        let cell = cc.instantiate(this.cellPrefab).getComponent(Cell);
+        cell.node.parent = this.node;
+        cell.setCoords(coords);
+        cell.isDisabled = isDisabled;
+        cell.isDark = isDark;
+        return cell;
+    }
+
+    protected onLoad(): void {
+        this._fieldLayout = this.config.json.fieldLayout;
+        this._rows = this.config.json.rows;
+        this._columns = this.config.json.columns;
+
+        this.printField();
+        this.initField();
     }
 
     // Заполняем поле клетками
@@ -42,12 +56,11 @@ export default class FieldController extends cc.Component {
         for (let row = 0; row < this._rows; row++) {
             this._field.push([]);
             for (let col = 0; col < this._columns; col++) {
-                if (this._fieldLayout[row][col] === 1) {
-                    let typeID = this.isEven(row) !== this.isEven(col) ? 0 : 1;
-                    this._field[row].push(
-                        this.createCell(new Coords(col, row), typeID)
-                    );
-                }
+                let isDisabled = (this._fieldLayout[row][col] === 0);
+                let isDark = (this.isEven(row) === this.isEven(col));
+                this._field[row].push(
+                    this.createCell(new Coords(col, row), isDisabled, isDark)
+                );
             }
         }
     }
@@ -63,21 +76,7 @@ export default class FieldController extends cc.Component {
         cc.log(str);
     }
 
-    public createCell(coords: Coords, typeID: number): Cell {
-        let cell = cc.instantiate(this.cellPrefab).getComponent(Cell);
-        cell.node.parent = this.node;
-        cell.setCoords(coords);
-        cell.setType(typeID);
-        cell.changePosition();
-        return cell;
-    }
-
-    protected onLoad(): void {
-        this._fieldLayout = this.config.json.fieldLayout;
-        this._rows = this.config.json.rows;
-        this._columns = this.config.json.columns;
-
-        this.printField();
-        this.initField();
+    private isEven(n: number): boolean {
+        return n % 2 === 0;
     }
 }
