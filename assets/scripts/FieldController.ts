@@ -20,14 +20,33 @@ export default class FieldController extends cc.Component {
         [1, 1, 1, 1, 1, 1, 1, 1, 1],
     ];
 
-    private _initField() {
-        for (let row = 0; row < this._fieldLayout.length; row++) {
-            for (let col = 0; col < this._fieldLayout[row].length; col++) {
-                if (this._fieldLayout[row][col] === 1) {
-                    this.createCell(new Coords(col, row));
-                }
-            }
+    private _height = this._fieldLayout.length;
+    private _width = this._fieldLayout[0].length;
+
+    private _everyRow(callback: Function) {
+        for (let row = 0; row < this._height; row++) {
+            callback(row);
         }
+    }
+
+    private _everyCol(callback: Function) {
+        for (let col = 0; col < this._width; col++) {
+            callback(col);
+        }
+    }
+
+    private _everyCell(callback: Function) {
+        this._everyRow(function (row: number) {
+            this._everyCol(function (col: number) {
+                callback(col, row);
+            });
+        });
+    }
+
+    private _initField() {
+        this._everyCell(function (col: number, row: number) {
+            this.createCell(new Coords(col, row));
+        });
     }
 
     public getPositionOfCell(coords: Coords) {
