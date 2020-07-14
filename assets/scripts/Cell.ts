@@ -21,6 +21,7 @@ export default class Cell extends cc.Component {
     private _isDark: boolean;
 
     public updatePosition(): void {
+        //TODO
         let pos = this.getPositionOfCoords(this._coords);
         this.node.setPosition(pos);
     }
@@ -34,14 +35,19 @@ export default class Cell extends cc.Component {
         this.updatePosition();
     }
 
-    private updateSpriteFrame(): void {
-        if (!this.isDisabled) {
-            this.background.spriteFrame = this.isDark ? this.greySpriteFrame : this.whiteSpriteFrame;
-        }
-    }
-
-    private getPositionOfCoords(coords: Coords): cc.Vec2 {
+    public getPositionOfCoords(coords: Coords): cc.Vec2 {
         //TODO
         return cc.v2(62 * (coords.col - 4), 62 * (4 - coords.row));
+    }
+
+    public setSize(size: number): void {
+        this.node.width = size;
+        this.node.height = size;
+    }
+
+    private updateSpriteFrame(): void {
+        if (!this.isDisabled) {
+            this.background.spriteFrame = this._isDark ? this.greySpriteFrame : this.whiteSpriteFrame;
+        }
     }
 }
