@@ -36,15 +36,15 @@ export default class FieldController extends cc.Component {
     }
 
     private _everyCell(callback: Function) {
-        this._everyRow(function (row: number) {
-            this._everyCol(function (col: number) {
+        this._everyRow((row: number) => {
+            this._everyCol((col: number) => {
                 callback(col, row);
             });
         });
     }
 
     private _initField() {
-        this._everyCell(function (col: number, row: number) {
+        this._everyCell((col: number, row: number) => {
             this.createCell(new Coords(col, row));
         });
     }
