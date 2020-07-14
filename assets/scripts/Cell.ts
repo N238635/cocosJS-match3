@@ -25,10 +25,10 @@ export default class Cell extends cc.Component {
 
     private getPositionOfCoords(coords: Coords): cc.Vec2 {
         //TODO
-        return cc.v2(0, 0);
+        return cc.v2(62 * (coords.col - 4), 62 * (4 - coords.row));
     }
 
-    private changePosition(): void {
+    public changePosition(): void {
         let pos = this.getPositionOfCoords(this._coords);
         this.node.setPosition(pos);
     }
@@ -53,6 +53,5 @@ export default class Cell extends cc.Component {
 
     protected onLoad(): void {
         this._sprite = this.node.addComponent(cc.Sprite);
-        this.changePosition();
     }
 }
