@@ -68,11 +68,11 @@ export default class FieldController extends cc.Component {
     }
 
     public createCell(coords: Coords, typeID: number): Cell {
-        let cell = cc.instantiate(this.cellPrefab);
-        cell.parent = this.node;
-        let pos = this.getPositionOfCell(coords);
-        cell.setPosition(pos);
-        return cell.getComponent(Cell);
+        let cell = cc.instantiate(this.cellPrefab).getComponent(Cell);
+        cell.node.parent = this.node;
+        cell.setCoords(coords);
+        cell.setType(typeID);
+        return cell;
     }
 
     protected onLoad(): void {
