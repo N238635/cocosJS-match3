@@ -12,20 +12,20 @@ export enum tileColorID {
 }
 
 export enum tileType {
-    Gem = 0,
+    Color = 0,
     Vertical = 1,
     Horizontal = 2,
     Rainbow = 3
 }
 
-const colors = {
+const colorsRGB = {
     0: [255, 255, 255],
-    1: [],
-    2: [],
-    3: [],
-    4: [],
-    5: [],
-    6: []
+    1: [255, 255, 0],
+    2: [255, 0, 0],
+    3: [0, 0, 255],
+    4: [128, 0, 128],
+    5: [0, 255, 0],
+    6: [255, 165, 0]
 };
 
 @ccclass
@@ -34,12 +34,10 @@ export default class Tile extends cc.Component {
     @property(cc.Sprite) sprite: cc.Sprite = null;
     @property(cc.SpriteFrame) whiteCircle: cc.SpriteFrame = null;
 
-    get coords(): Coords { return this._coords }
-    set coords(coords: Coords) { this._coords = coords }
+    public coords: Coords = new Coords();
 
-    private _coords: Coords = new Coords();
     private _colorID: tileColorID = tileColorID.White;
-    private _type: tileType = tileType.Gem;
+    private _type: tileType = tileType.Color;
 
     public setType(type: tileType): void {
         this._type = type;
@@ -48,20 +46,17 @@ export default class Tile extends cc.Component {
 
     public setColorID(colorID: tileColorID): void {
         this._colorID = colorID;
-        this.setColor();
-    }
-
-    private setSprite(): void {
-        switch (this._type) {
-            case 0:
-                this.sprite.spriteFrame = this.whiteCircle;
-                break;
+        if (colorsRGB[this._colorID]) {
+            this.node.color = cc.color(...colorsRGB[this._colorID]);
         }
     }
 
-    private setColor(): void {
-        if (colors[this._colorID]) {
-            this.node.color = cc.color(...colors[this._colorID]);
+    private setSprite(): void {
+        const spriteFrames = {
+            [tileType.Color]: this.whiteCircle,
+        };
+        if (spriteFrames[tileType.Color]) {
+            this.sprite.spriteFrame = spriteFrames[tileType.Color];
         }
     }
 }
