@@ -15,8 +15,8 @@ export default class FieldController extends cc.Component {
     private _columns: number = 0;
     private _cellSize: number = 0;
 
-    private _leftMargin: number;
-    private _topMargin: number;
+    private _canvasWidth: number;
+    private _canvasHeight: number;
 
     private _field: Cell[][] = [];
 
@@ -43,7 +43,7 @@ export default class FieldController extends cc.Component {
         cell.node.parent = this.node;
         cell.setSize(this._cellSize);
         cell.node.setPosition(this.getPositionOfCoords(coords));
-        //cell.setCoords(coords);
+        cell.coords = coords;
         cell.isDisabled = isDisabled;
         cell.isDark = isDark;
         return cell;
@@ -54,17 +54,16 @@ export default class FieldController extends cc.Component {
         this._rows = this.config.json.rows;
         this._columns = this.config.json.columns;
         this._cellSize = this.config.json.cellSize;
-
-        this._leftMargin = (this.node.parent.width - this.node.width) / 2;
-        this._topMargin = (this.node.parent.height - this.node.height) / 2;
+        this._canvasWidth = this.config.json.canvas.width;
+        this._canvasHeight = this.config.json.canvas.height;
 
         this.printField();
         this.initField();
     }
 
     private getPositionOfCoords(coords: Coords): cc.Vec2 {
-        let absoluteX = this._leftMargin + (coords.col + 0.5) * this._cellSize;
-        let absoluteY = this.node.parent.height - (this._topMargin + (coords.row + 0.5) * this._cellSize);
+        let absoluteX = this._canvasWidth / 2 - (this._columns / 2 - (coords.col + 0.5)) * this._cellSize;
+        let absoluteY = this._canvasHeight / 2 + (this._rows / 2 - (coords.row + 0.5)) * this._cellSize;
         return this.node.convertToNodeSpaceAR(cc.v2(absoluteX, absoluteY));
     }
 
