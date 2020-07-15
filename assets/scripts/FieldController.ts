@@ -38,11 +38,13 @@ export default class FieldController extends cc.Component {
         return this.createTile(tileType.Color, randomColorID);
     }
 
-    public createTile(type: tileType, colorID: tileColorID = tileColorID.White): Tile {
+    public createTile(type: tileType, colorID?: tileColorID): Tile {
         let tile = cc.instantiate(this.tilePrefab).getComponent(Tile);
         tile.node.parent = this.node;
         tile.setType(type);
-        tile.setColorID(colorID);
+        if (typeof (colorID) !== 'undefined') {
+            tile.setColorID(colorID);
+        }
         return tile;
     }
 

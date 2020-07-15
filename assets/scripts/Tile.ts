@@ -1,14 +1,13 @@
 import Coords from "./Coords";
-const {ccclass, property} = cc._decorator;
+const { ccclass, property } = cc._decorator;
 
 export enum tileColorID {
-    White = 0,
-    Yellow = 1,
-    Red = 2, 
-    Blue = 3, 
-    Purple = 4, 
-    Green = 5, 
-    Orange = 6
+    Yellow = 0,
+    Red = 1,
+    Blue = 2,
+    Purple = 3,
+    Green = 4,
+    Orange = 5
 }
 
 export enum tileType {
@@ -19,24 +18,23 @@ export enum tileType {
 }
 
 const colorsRGB = {
-    0: [255, 255, 255],
-    1: [255, 255, 0],
-    2: [255, 0, 0],
-    3: [0, 0, 255],
-    4: [128, 0, 128],
-    5: [0, 255, 0],
-    6: [255, 165, 0]
+    0: [255, 255, 0],
+    1: [255, 0, 0],
+    2: [0, 0, 255],
+    3: [128, 0, 128],
+    4: [0, 255, 0],
+    5: [255, 165, 0]
 };
 
 @ccclass
 export default class Tile extends cc.Component {
-    
+
     @property(cc.Sprite) sprite: cc.Sprite = null;
     @property(cc.SpriteFrame) whiteCircle: cc.SpriteFrame = null;
 
     public coords: Coords = new Coords();
 
-    private _colorID: tileColorID = tileColorID.White;
+    private _colorID: tileColorID;
     private _type: tileType = tileType.Color;
 
     public setType(type: tileType): void {
@@ -49,6 +47,10 @@ export default class Tile extends cc.Component {
         if (colorsRGB[this._colorID]) {
             this.node.color = cc.color(...colorsRGB[this._colorID]);
         }
+    }
+
+    public remove() {
+        this.node.destroy();
     }
 
     private setSprite(): void {
