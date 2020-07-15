@@ -33,6 +33,11 @@ export default class FieldController extends cc.Component {
         return this._field[realCoords.col][realCoords.row];
     }
 
+    public createRandomColorTile(): Tile {
+        let randomColorID = this.randomColorID();
+        return this.createTile(tileType.Color, randomColorID);
+    }
+
     public createTile(type: tileType, colorID: tileColorID = tileColorID.White): Tile {
         let tile = cc.instantiate(this.tilePrefab).getComponent(Tile);
         tile.node.parent = this.node;
@@ -68,6 +73,12 @@ export default class FieldController extends cc.Component {
             str += '\n';
         }
         cc.log(str);
+    }
+
+    private randomColorID(): tileColorID {
+        let keys = Object.keys(tileColorID);
+        let key = keys[Math.floor(Math.random() * keys.length)];
+        return tileColorID[key];
     }
 
     private getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {

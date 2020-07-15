@@ -9,15 +9,14 @@ export default class GameController extends cc.Component {
 
     @property(FieldController) field: FieldController = null;
 
-    onLoad() {
+    protected onLoad(): void {
         this.field.printField();
         this.field.initField();
         this.field.everyCell((cell: Cell) => {
             if (!cell.isDisabled) {
-                let tile = this.field.createTile(tileType.Color, tileColorID.Red);
+                let tile = this.field.createRandomColorTile();
                 cell.setTile(tile);
             }
         });
     }
-
 }
