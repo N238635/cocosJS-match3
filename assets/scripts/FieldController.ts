@@ -78,7 +78,7 @@ export default class FieldController extends cc.Component {
     }
 
     private randomColorID(): tileColorID {
-        let keys = Object.keys(tileColorID);
+        let keys = Object.keys(tileColorID).filter(n => isNaN(Number(n)));
         let key = keys[Math.floor(Math.random() * keys.length)];
         return tileColorID[key];
     }
