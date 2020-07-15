@@ -12,5 +12,9 @@
     ],
     "rows": 9,
     "columns": 9,
-    "cellSize": 62
+    "cellSize": 62,
+    "canvas": {
+        "width": 760,
+        "height": 690
+    }
 }
