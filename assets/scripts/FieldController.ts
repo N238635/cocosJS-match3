@@ -38,7 +38,7 @@ export default class FieldController extends cc.Component {
         tile.node.parent = this.node;
         tile.setType(type);
         tile.setColorID(colorID);
-        return;
+        return tile;
     }
 
     protected onLoad(): void {
