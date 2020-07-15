@@ -15,7 +15,7 @@ export default class FieldController extends cc.Component {
     private _field: Cell[][] = [];
 
     public everyCell(callback: (cell: Cell) => void): void {
-        const {columns, rows} = this.config.json;
+        const { columns, rows } = this.config.json;
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < columns; col++) {
                 callback(this.getCell(col, row));
@@ -46,16 +46,16 @@ export default class FieldController extends cc.Component {
         this.initField();
     }
 
-    private getPositionOfCoords(coords: Coords): cc.Vec2 {
-        const {columns, rows, canvas, cellSize} = this.config.json;
-        let absoluteX = canvas.width / 2 - (columns / 2 - (coords.col + 0.5)) * cellSize;
-        let absoluteY = canvas.height / 2 + (rows / 2 - (coords.row + 0.5)) * cellSize;
-        return this.node.convertToNodeSpaceAR(cc.v2(absoluteX, absoluteY));
+    private getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
+        const { columns, rows, canvas, cellSize } = this.config.json;
+        let absoluteX = canvas.width / 2 - (columns / 2 - coords.col) * cellSize;
+        let absoluteY = canvas.height / 2 + (rows / 2 - coords.row) * cellSize;
+        return cc.v2(absoluteX, absoluteY);
     }
 
     // Заполняем поле клетками
     private initField(): void {
-        const {columns, rows, fieldLayout} = this.config.json;
+        const { columns, rows, fieldLayout } = this.config.json;
         let isDark: boolean;
         let isDisabled: boolean;
         for (let row = 0; row < rows; row++) {
@@ -75,7 +75,8 @@ export default class FieldController extends cc.Component {
         let cell = cc.instantiate(this.cellPrefab).getComponent(Cell);
         cell.node.parent = this.node;
         cell.setSize(cellSize);
-        cell.node.setPosition(this.getPositionOfCoords(coords));
+        let absoluteCellPosition = this.getAbsolutePositionOfCoords(coords);
+        cell.setPositionFromAbsolute(absoluteCellPosition);
         cell.coords = coords;
         cell.isDisabled = isDisabled;
         cell.isDark = isDark;
@@ -83,7 +84,7 @@ export default class FieldController extends cc.Component {
     }
 
     private printField(): void {
-        const { fieldLayout, rows, columns} = this.config.json;
+        const { fieldLayout, rows, columns } = this.config.json;
         let str = "";
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < columns; col++) {

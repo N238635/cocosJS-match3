@@ -47,12 +47,22 @@ export default class Cell extends cc.Component {
     }
 
     public removeTile(): void {
-        this._tile = undefined;
+        this._tile = null;
     }
 
     public setSize(size: number): void {
         this.node.width = size;
         this.node.height = size;
+    }
+
+    public setPositionFromAbsolute(absolutePosition: cc.Vec2): void {
+        let pos = this.node.parent.convertToNodeSpaceAR(absolutePosition);
+        pos.addSelf(this.centerPositionCorrection());
+        this.node.setPosition(pos);
+    }
+
+    private centerPositionCorrection(): cc.Vec2 {
+        return cc.v2(0.5 * this.node.width, -0.5 * this.node.height);
     }
 
     private updateSpriteFrame(): void {
