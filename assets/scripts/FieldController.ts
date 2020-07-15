@@ -39,8 +39,9 @@ export default class FieldController extends cc.Component {
     }
 
     public createTile(type: tileType, colorID?: tileColorID): Tile {
-        let tile = cc.instantiate(this.tilePrefab).getComponent(Tile);
-        tile.node.parent = this.node;
+        let tileNode = cc.instantiate(this.tilePrefab);
+        let tile = tileNode.getComponent(Tile);
+        tile.setParent(this.node);
         tile.setType(type);
         if (typeof (colorID) !== 'undefined') {
             tile.setColorID(colorID);
@@ -50,17 +51,24 @@ export default class FieldController extends cc.Component {
 
     // Заполняем поле клетками
     public initField(): void {
-        const { columns, rows, fieldLayout } = this.config.json;
-        let isDark: boolean;
-        let isDisabled: boolean;
+        const { columns, rows, fieldLayout, cellSize } = this.config.json;
+        let cell: Cell, cellCoords: Coords, absoluteCellPosition: cc.Vec2;
+
         for (let row = 0; row < rows; row++) {
             this._field.push([]);
             for (let col = 0; col < columns; col++) {
-                isDisabled = (fieldLayout[row][col] === 0);
-                isDark = (this.isEven(row) === this.isEven(col));
-                this._field[row].push(
-                    this.createCell(new Coords(col, row), isDisabled, isDark)
-                );
+                cell = this.createCell();
+                cellCoords = new Coords(col, row);
+                absoluteCellPosition = this.getAbsolutePositionOfCoords(cellCoords);
+
+                cell.isDisabled = fieldLayout[row][col] === 0;
+                cell.isDark = this.isEven(row) === this.isEven(col);
+                cell.coords = cellCoords;
+
+                cell.setSize(cellSize);
+                cell.setPositionFromAbsolute(absoluteCellPosition);
+
+                this._field[row][col] = cell;
             }
         }
     }
@@ -77,10 +85,11 @@ export default class FieldController extends cc.Component {
         cc.log(str);
     }
 
-    private randomColorID(): tileColorID {
-        let keys = Object.keys(tileColorID).filter(n => isNaN(Number(n)));
-        let key = keys[Math.floor(Math.random() * keys.length)];
-        return tileColorID[key];
+    private randomColorID(): number {
+        let colorNames = Object.keys(tileColorID).filter(n => isNaN(Number(n)));
+        let randomNameIndex = Math.floor(Math.random() * colorNames.length);
+        let color = colorNames[randomNameIndex];
+        return tileColorID[color];
     }
 
     private getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
@@ -90,16 +99,10 @@ export default class FieldController extends cc.Component {
         return cc.v2(absoluteX, absoluteY);
     }
 
-    private createCell(coords: Coords, isDisabled: boolean, isDark: boolean): Cell {
-        const { cellSize } = this.config.json;
-        let cell = cc.instantiate(this.cellPrefab).getComponent(Cell);
-        cell.node.parent = this.node;
-        cell.setSize(cellSize);
-        let absoluteCellPosition = this.getAbsolutePositionOfCoords(coords);
-        cell.setPositionFromAbsolute(absoluteCellPosition);
-        cell.coords = coords;
-        cell.isDisabled = isDisabled;
-        cell.isDark = isDark;
+    private createCell(): Cell {
+        let cellNode = cc.instantiate(this.cellPrefab);
+        let cell = cellNode.getComponent(Cell);
+        cell.setParent(this.node);
         return cell;
     }
 
