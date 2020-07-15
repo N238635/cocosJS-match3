@@ -12,19 +12,17 @@ export default class Cell extends cc.Component {
     public tile: Tile;
     public isDisabled: boolean = true;
 
+    get isDark(): boolean { return this._isDark }
     set isDark(isDark: boolean) {
         this._isDark = isDark;
         this.updateSpriteFrame();
     }
 
-    get isDark(): boolean { return this._isDark }
-
+    get coords(): Coords { return this._coords }
     set coords(coords: Coords) {
         this._coords = coords;
         //this.updatePosition();
     }
-
-    get coords(): Coords { return this._coords }
 
     private _coords: Coords = new Coords();
     private _isDark: boolean;
