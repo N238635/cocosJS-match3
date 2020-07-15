@@ -41,20 +41,8 @@ export default class FieldController extends cc.Component {
         return tile;
     }
 
-    protected onLoad(): void {
-        this.printField();
-        this.initField();
-    }
-
-    private getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
-        const { columns, rows, canvas, cellSize } = this.config.json;
-        let absoluteX = canvas.width / 2 - (columns / 2 - coords.col) * cellSize;
-        let absoluteY = canvas.height / 2 + (rows / 2 - coords.row) * cellSize;
-        return cc.v2(absoluteX, absoluteY);
-    }
-
     // Заполняем поле клетками
-    private initField(): void {
+    public initField(): void {
         const { columns, rows, fieldLayout } = this.config.json;
         let isDark: boolean;
         let isDisabled: boolean;
@@ -70,6 +58,25 @@ export default class FieldController extends cc.Component {
         }
     }
 
+    public printField(): void {
+        const { fieldLayout, rows, columns } = this.config.json;
+        let str = "";
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < columns; col++) {
+                str += fieldLayout[row][col] === 1 ? 'O ' : 'X ';
+            }
+            str += '\n';
+        }
+        cc.log(str);
+    }
+
+    private getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
+        const { columns, rows, canvas, cellSize } = this.config.json;
+        let absoluteX = canvas.width / 2 - (columns / 2 - coords.col) * cellSize;
+        let absoluteY = canvas.height / 2 + (rows / 2 - coords.row) * cellSize;
+        return cc.v2(absoluteX, absoluteY);
+    }
+
     private createCell(coords: Coords, isDisabled: boolean, isDark: boolean): Cell {
         const { cellSize } = this.config.json;
         let cell = cc.instantiate(this.cellPrefab).getComponent(Cell);
@@ -81,18 +88,6 @@ export default class FieldController extends cc.Component {
         cell.isDisabled = isDisabled;
         cell.isDark = isDark;
         return cell;
-    }
-
-    private printField(): void {
-        const { fieldLayout, rows, columns } = this.config.json;
-        let str = "";
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < columns; col++) {
-                str += fieldLayout[row][col] === 1 ? 'O ' : 'X ';
-            }
-            str += '\n';
-        }
-        cc.log(str);
     }
 
     private isEven(n: number): boolean {
