@@ -37,6 +37,10 @@ export default class Tile extends cc.Component {
     private _colorID: tileColorID;
     private _type: tileType = tileType.Color;
 
+    public setParent(parent: cc.Node): void {
+        this.node.parent = parent;
+    }
+
     public setType(type: tileType): void {
         this._type = type;
         this.setSprite();

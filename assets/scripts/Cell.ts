@@ -29,6 +29,10 @@ export default class Cell extends cc.Component {
     private _coords: Coords = new Coords();
     private _isDark: boolean;
 
+    public setParent(parent: cc.Node): void {
+        this.node.parent = parent;
+    }
+
     public updatePosition(): void {
         //TODO
         let pos = this.getPositionOfCoords(this._coords);
