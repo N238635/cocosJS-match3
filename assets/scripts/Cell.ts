@@ -9,8 +9,9 @@ export default class Cell extends cc.Component {
     @property(cc.SpriteFrame) greySpriteFrame: cc.SpriteFrame = null;
     @property(cc.Sprite) background: cc.Sprite = null;
 
-    public tile: Tile;
     public isDisabled: boolean = true;
+
+    get getTile(): Tile { return this._tile }
 
     get isDark(): boolean { return this._isDark }
     set isDark(isDark: boolean) {
@@ -24,6 +25,7 @@ export default class Cell extends cc.Component {
         //this.updatePosition();
     }
 
+    private _tile: Tile;
     private _coords: Coords = new Coords();
     private _isDark: boolean;
 
@@ -36,6 +38,16 @@ export default class Cell extends cc.Component {
     public getPositionOfCoords(coords: Coords): cc.Vec2 {
         //TODO
         return cc.v2(62 * (coords.col - 4), 62 * (4 - coords.row));
+    }
+
+    public setTile(tile: Tile): void {
+        this._tile = tile;
+        this._tile.node.setPosition(this.node.getPosition());
+        this._tile.coords = this._coords;
+    }
+
+    public removeTile(): void {
+        this._tile = undefined;
     }
 
     public setSize(size: number): void {
