@@ -41,16 +41,24 @@ export default class Tile extends cc.Component {
         this.node.parent = parent;
     }
 
+    public getType(): tileType { return this._type }
+
     public setType(type: tileType): void {
         this._type = type;
         this.setSprite();
     }
+
+    public getColorID(): tileColorID { return this._colorID }
 
     public setColorID(colorID: tileColorID): void {
         this._colorID = colorID;
         if (colorsRGB[this._colorID]) {
             this.node.color = cc.color(...colorsRGB[this._colorID]);
         }
+    }
+
+    public setPosition(pos: cc.Vec2): void {
+        this.node.setPosition(pos);
     }
 
     public remove() {
