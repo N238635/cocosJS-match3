@@ -55,11 +55,6 @@ export default class Cell extends cc.Component {
         return cc.v2(62 * (coords.col - 4), 62 * (4 - coords.row));
     }
 
-    public setSize(size: number): void {
-        this.node.width = size;
-        this.node.height = size;
-    }
-
     public setPositionFromAbsolute(absolutePosition: cc.Vec2): void {
         let pos: cc.Vec2 = this.node.parent.convertToNodeSpaceAR(absolutePosition);
         pos.addSelf(this.centerPositionCorrection());
