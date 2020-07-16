@@ -17,8 +17,8 @@ export default class FieldController extends cc.Component {
     public everyCell(callback: (cell: Cell) => void): void {
         const { columns, rows } = this.config.json;
 
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < columns; col++) {
+        for (let row: number = 0; row < rows; row++) {
+            for (let col: number = 0; col < columns; col++) {
                 callback(this.getCell(col, row));
             }
         }
@@ -26,23 +26,23 @@ export default class FieldController extends cc.Component {
 
     public getCell(coords: Coords | number, row?: number): Cell {
         const isInvalidType: boolean = (typeof (coords) === 'number');
-        const column = isInvalidType && (coords as number);
+        const column: number = isInvalidType && (coords as number);
 
-        let realCoords = isInvalidType ? new Coords(column, row) : (coords as Coords);
+        let realCoords: Coords = isInvalidType ? new Coords(column, row) : (coords as Coords);
         if (!realCoords) return;
 
         return this._field[realCoords.col][realCoords.row];
     }
 
     public createRandomColorTile(): Tile {
-        let randomColorID = this.randomColorID();
+        let randomColorID: tileColorID = this.randomColorID();
 
         return this.createTile(tileType.Color, randomColorID);
     }
 
     public createTile(type: tileType, colorID?: tileColorID): Tile {
-        let tileNode = cc.instantiate(this.tilePrefab);
-        let tile = tileNode.getComponent(Tile);
+        let tileNode: cc.Node = cc.instantiate(this.tilePrefab);
+        let tile: Tile = tileNode.getComponent(Tile);
 
         tile.setParent(this.node);
         tile.setType(type);
@@ -57,10 +57,10 @@ export default class FieldController extends cc.Component {
         const { columns, rows, fieldLayout, cellSize } = this.config.json;
         let cell: Cell, cellCoords: Coords, absoluteCellPosition: cc.Vec2;
 
-        for (let row = 0; row < rows; row++) {
+        for (let row: number = 0; row < rows; row++) {
             this._field[row] = [];
 
-            for (let col = 0; col < columns; col++) {
+            for (let col: number = 0; col < columns; col++) {
                 cell = this.createCell();
 
                 cell.isDisabled = fieldLayout[row][col] === 0;
@@ -81,10 +81,10 @@ export default class FieldController extends cc.Component {
     public printField(): void {
         const { fieldLayout, rows, columns } = this.config.json;
 
-        let str = "";
+        let str: string = "";
 
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < columns; col++) {
+        for (let row: number = 0; row < rows; row++) {
+            for (let col: number = 0; col < columns; col++) {
                 str += fieldLayout[row][col] === 1 ? 'O ' : 'X ';
             }
             str += '\n';
@@ -93,10 +93,14 @@ export default class FieldController extends cc.Component {
         cc.log(str);
     }
 
-    private randomColorID(): number {
-        let colorNames = Object.keys(tileColorID).filter(n => isNaN(Number(n)));
-        let randomNameIndex = Math.floor(Math.random() * colorNames.length);
-        let color = colorNames[randomNameIndex];
+    public checkCombinations() {
+
+    }
+
+    private randomColorID(): tileColorID {
+        let colorNames: string[] = Object.keys(tileColorID).filter(n => isNaN(Number(n)));
+        let randomNameIndex: number = Math.floor(Math.random() * colorNames.length);
+        let color: string = colorNames[randomNameIndex];
 
         return tileColorID[color];
     }
@@ -104,15 +108,15 @@ export default class FieldController extends cc.Component {
     private getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
         const { columns, rows, canvas, cellSize } = this.config.json;
 
-        let absoluteX = canvas.width / 2 - (columns / 2 - coords.col) * cellSize;
-        let absoluteY = canvas.height / 2 + (rows / 2 - coords.row) * cellSize;
+        let absoluteX: number = canvas.width / 2 - (columns / 2 - coords.col) * cellSize;
+        let absoluteY: number = canvas.height / 2 + (rows / 2 - coords.row) * cellSize;
 
         return cc.v2(absoluteX, absoluteY);
     }
 
     private createCell(): Cell {
-        let cellNode = cc.instantiate(this.cellPrefab);
-        let cell = cellNode.getComponent(Cell);
+        let cellNode: cc.Node = cc.instantiate(this.cellPrefab);
+        let cell: Cell = cellNode.getComponent(Cell);
         cell.setParent(this.node);
 
         return cell;

@@ -47,7 +47,7 @@ export default class Cell extends cc.Component {
     }
 
     public updatePosition(): void {
-        let pos = this.getPositionOfCoords(this._coords);
+        let pos: cc.Vec2 = this.getPositionOfCoords(this._coords);
         this.node.setPosition(pos);
     }
 
@@ -61,7 +61,7 @@ export default class Cell extends cc.Component {
     }
 
     public setPositionFromAbsolute(absolutePosition: cc.Vec2): void {
-        let pos = this.node.parent.convertToNodeSpaceAR(absolutePosition);
+        let pos: cc.Vec2 = this.node.parent.convertToNodeSpaceAR(absolutePosition);
         pos.addSelf(this.centerPositionCorrection());
         this.node.setPosition(pos);
     }

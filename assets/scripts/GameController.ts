@@ -1,6 +1,6 @@
 import FieldController from "./FieldController";
 import Cell from "./Cell";
-import { tileColorID, tileType } from "./Tile";
+import Tile, { tileColorID, tileType } from "./Tile";
 
 const { ccclass, property } = cc._decorator;
 
@@ -15,7 +15,7 @@ export default class GameController extends cc.Component {
 
         this.field.everyCell((cell: Cell) => {
             if (!cell.isDisabled && cell.coords.row < 6) {
-                let tile = this.field.createRandomColorTile();
+                let tile: Tile = this.field.createRandomColorTile();
                 cell.tile = tile;
             }
         });
