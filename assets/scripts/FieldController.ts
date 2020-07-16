@@ -25,13 +25,13 @@ export default class FieldController extends cc.Component {
     }
 
     public getCell(coords: Coords | number, row?: number): Cell {
-        const isInvalidType: boolean = (typeof (coords) === 'number');
+        const isInvalidType: boolean = typeof (coords) === 'number';
         const column: number = isInvalidType && (coords as number);
 
         let realCoords: Coords = isInvalidType ? new Coords(column, row) : (coords as Coords);
         if (!realCoords) return;
         if (!this._field[realCoords.row]) return;
-        
+
         return this._field[realCoords.row][realCoords.col];
     }
 
@@ -49,7 +49,7 @@ export default class FieldController extends cc.Component {
 
     // Заполняем поле клетками
     public initField(): void {
-        const { columns, rows, fieldLayout, cellSize } = this.config.json;
+        const { columns, rows, fieldLayout, cell: cellParams } = this.config.json;
         let cell: Cell, cellCoords: Coords, absoluteCellPosition: cc.Vec2;
 
         for (let row: number = 0; row < rows; row++) {
@@ -60,7 +60,7 @@ export default class FieldController extends cc.Component {
 
                 cell.isDisabled = fieldLayout[row][col] === 0;
                 cell.isDark = this.isEven(row) === this.isEven(col);
-                cell.setSize(cellSize);
+                cell.node.setContentSize(cellParams.width, cellParams.height);
 
                 cellCoords = new Coords(col, row);
                 cell.coords = cellCoords;
@@ -148,10 +148,10 @@ export default class FieldController extends cc.Component {
     }
 
     private getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
-        const { columns, rows, canvas, cellSize } = this.config.json;
+        const { columns, rows, canvas, cell } = this.config.json;
 
-        let absoluteX: number = canvas.width / 2 - (columns / 2 - coords.col) * cellSize;
-        let absoluteY: number = canvas.height / 2 + (rows / 2 - coords.row) * cellSize;
+        let absoluteX: number = canvas.width / 2 - (columns / 2 - coords.col) * cell.width;
+        let absoluteY: number = canvas.height / 2 + (rows / 2 - coords.row) * cell.height;
 
         return cc.v2(absoluteX, absoluteY);
     }
