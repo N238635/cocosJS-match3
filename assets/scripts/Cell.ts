@@ -11,7 +11,12 @@ export default class Cell extends cc.Component {
 
     public isDisabled: boolean = true;
 
-    get getTile(): Tile { return this._tile }
+    get tile(): Tile { return this._tile }
+    set tile(tile: Tile) {
+        this._tile = tile;
+        this._tile.setPosition(this.node.getPosition());
+        this._tile.coords = this._coords;
+    }
 
     get isDark(): boolean { return this._isDark }
     set isDark(isDark: boolean) {
@@ -33,6 +38,10 @@ export default class Cell extends cc.Component {
         this.node.parent = parent;
     }
 
+    public removeTile(): void {
+        this._tile = null;
+    }
+
     public updatePosition(): void {
         //TODO
         let pos = this.getPositionOfCoords(this._coords);
@@ -42,16 +51,6 @@ export default class Cell extends cc.Component {
     public getPositionOfCoords(coords: Coords): cc.Vec2 {
         //TODO
         return cc.v2(62 * (coords.col - 4), 62 * (4 - coords.row));
-    }
-
-    public setTile(tile: Tile): void {
-        this._tile = tile;
-        this._tile.node.setPosition(this.node.getPosition());
-        this._tile.coords = this._coords;
-    }
-
-    public removeTile(): void {
-        this._tile = null;
     }
 
     public setSize(size: number): void {
