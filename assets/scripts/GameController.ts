@@ -1,6 +1,7 @@
 import FieldController from "./FieldController";
 import Cell from "./Cell";
 import Tile, { tileColorID, tileType } from "./Tile";
+import Coords from "./Coords";
 
 const { ccclass, property } = cc._decorator;
 
@@ -13,11 +14,6 @@ export default class GameController extends cc.Component {
         this.field.printField();
         this.field.initField();
 
-        this.field.everyCell((cell: Cell) => {
-            if (!cell.isDisabled && cell.coords.row < 6) {
-                let tile: Tile = this.field.createRandomColorTile();
-                cell.tile = tile;
-            }
-        });
+        this.field.generateRandomTiles();
     }
 }

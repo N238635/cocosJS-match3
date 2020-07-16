@@ -34,12 +34,6 @@ export default class FieldController extends cc.Component {
         return this._field[realCoords.col][realCoords.row];
     }
 
-    public createRandomColorTile(): Tile {
-        let randomColorID: tileColorID = this.randomColorID();
-
-        return this.createTile(tileType.Color, randomColorID);
-    }
-
     public createTile(type: tileType, colorID?: tileColorID): Tile {
         let tileNode: cc.Node = cc.instantiate(this.tilePrefab);
         let tile: Tile = tileNode.getComponent(Tile);
@@ -91,6 +85,30 @@ export default class FieldController extends cc.Component {
         }
 
         cc.log(str);
+    }
+
+    public generateRandomTiles() {
+        this.everyCell((cell: Cell) => {
+            if (!cell.isDisabled && cell.coords.row < 6) {
+                let cellCoords: Coords = cell.coords;
+                let exeptions: tileColorID[] = [];
+
+                let leftCellCoords: Coords = new Coords(cellCoords.col - 1, cellCoords.row);
+                let leftTileColorID: tileColorID = this.getCell(leftCellCoords).tile.getColorID();
+
+                exeptions.push(leftTileColorID);
+
+                let topCellCoords: Coords = new Coords(cellCoords.col - 1, cellCoords.row);
+                let topTileColorID: tileColorID = this.getCell(topCellCoords).tile.getColorID();
+
+                if (topTileColorID !== leftTileColorID) exeptions.push(topTileColorID);
+
+                let randomColorID: tileColorID = this.randomColorID(exeptions);
+                let tile: Tile = this.createTile(tileType.Color, randomColorID);
+
+                cell.tile = tile;
+            }
+        });
     }
 
     public checkCombinations() {
