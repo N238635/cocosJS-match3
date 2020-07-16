@@ -1,5 +1,6 @@
 import Coords from "./Coords";
 import Tile from "./Tile";
+
 const { ccclass, property } = cc._decorator;
 
 @ccclass
@@ -12,6 +13,7 @@ export default class Cell extends cc.Component {
     public isDisabled: boolean = true;
 
     get tile(): Tile { return this._tile }
+
     set tile(tile: Tile) {
         this._tile = tile;
         this._tile.setPosition(this.node.getPosition());
@@ -19,12 +21,14 @@ export default class Cell extends cc.Component {
     }
 
     get isDark(): boolean { return this._isDark }
+
     set isDark(isDark: boolean) {
         this._isDark = isDark;
         this.updateSpriteFrame();
     }
 
     get coords(): Coords { return this._coords }
+
     set coords(coords: Coords) {
         this._coords = coords;
         //this.updatePosition();
@@ -43,13 +47,11 @@ export default class Cell extends cc.Component {
     }
 
     public updatePosition(): void {
-        //TODO
         let pos = this.getPositionOfCoords(this._coords);
         this.node.setPosition(pos);
     }
 
     public getPositionOfCoords(coords: Coords): cc.Vec2 {
-        //TODO
         return cc.v2(62 * (coords.col - 4), 62 * (4 - coords.row));
     }
 

@@ -10,6 +10,7 @@ export default class Coords {
     public addSelf(coords: Coords): Coords {
         this.col += coords.col;
         this.row += coords.row;
+
         return this;
     }
 
@@ -20,6 +21,7 @@ export default class Coords {
     public subSelf(coords: Coords): Coords {
         this.col -= coords.col;
         this.row -= coords.row;
+
         return this;
     }
 
@@ -30,6 +32,7 @@ export default class Coords {
     public mulSelf(coords: Coords): Coords {
         this.col *= coords.col;
         this.row *= coords.row;
+
         return this;
     }
 

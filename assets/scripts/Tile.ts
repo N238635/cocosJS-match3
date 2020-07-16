@@ -1,4 +1,5 @@
 import Coords from "./Coords";
+
 const { ccclass, property } = cc._decorator;
 
 export enum tileColorID {
@@ -52,6 +53,7 @@ export default class Tile extends cc.Component {
 
     public setColorID(colorID: tileColorID): void {
         this._colorID = colorID;
+
         if (colorsRGB[this._colorID]) {
             this.node.color = cc.color(...colorsRGB[this._colorID]);
         }
@@ -69,6 +71,7 @@ export default class Tile extends cc.Component {
         const spriteFrames = {
             [tileType.Color]: this.whiteCircle,
         };
+
         if (spriteFrames[tileType.Color]) {
             this.sprite.spriteFrame = spriteFrames[tileType.Color];
         }

@@ -12,6 +12,7 @@ export default class GameController extends cc.Component {
     protected onLoad(): void {
         this.field.printField();
         this.field.initField();
+
         this.field.everyCell((cell: Cell) => {
             if (!cell.isDisabled && cell.coords.row < 6) {
                 let tile = this.field.createRandomColorTile();
