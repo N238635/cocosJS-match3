@@ -30,8 +30,9 @@ export default class FieldController extends cc.Component {
 
         let realCoords: Coords = isInvalidType ? new Coords(column, row) : (coords as Coords);
         if (!realCoords) return;
-
-        return this._field[realCoords.col][realCoords.row];
+        if (!this._field[realCoords.row]) return;
+        
+        return this._field[realCoords.row][realCoords.col];
     }
 
     public createTile(type: tileType, colorID?: tileColorID): Tile {
@@ -93,15 +94,21 @@ export default class FieldController extends cc.Component {
                 let cellCoords: Coords = cell.coords;
                 let exeptions: tileColorID[] = [];
 
-                let leftCellCoords: Coords = new Coords(cellCoords.col - 1, cellCoords.row);
-                let leftTileColorID: tileColorID = this.getCell(leftCellCoords).tile.getColorID();
+                let leftCell: Cell = this.getCell(cellCoords.col - 1, cellCoords.row);
+                let leftTileColorID: tileColorID;
 
-                exeptions.push(leftTileColorID);
+                if (leftCell && !leftCell.isDisabled && leftCell.tile) {
+                    leftTileColorID = leftCell.tile.getColorID();
+                    exeptions.push(leftTileColorID);
+                }
 
-                let topCellCoords: Coords = new Coords(cellCoords.col - 1, cellCoords.row);
-                let topTileColorID: tileColorID = this.getCell(topCellCoords).tile.getColorID();
+                let topCell: Cell = this.getCell(cellCoords.col, cellCoords.row - 1);
+                let topTileColorID: tileColorID;
 
-                if (topTileColorID !== leftTileColorID) exeptions.push(topTileColorID);
+                if (topCell && !topCell.isDisabled && topCell.tile) {
+                    topTileColorID = topCell.tile.getColorID();
+                    if (!leftTileColorID || topTileColorID !== leftTileColorID) exeptions.push(topTileColorID);
+                }
 
                 let randomColorID: tileColorID = this.randomColorID(exeptions);
                 let tile: Tile = this.createTile(tileType.Color, randomColorID);
