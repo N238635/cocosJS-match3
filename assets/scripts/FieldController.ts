@@ -95,19 +95,17 @@ export default class FieldController extends cc.Component {
                 let exeptions: tileColorID[] = [];
 
                 let leftCell: Cell = this.getCell(cellCoords.col - 1, cellCoords.row);
-                let leftTileColorID: tileColorID;
 
                 if (leftCell && !leftCell.isDisabled && leftCell.tile) {
-                    leftTileColorID = leftCell.tile.getColorID();
+                    let leftTileColorID: tileColorID = leftCell.tile.getColorID();
                     exeptions.push(leftTileColorID);
                 }
 
                 let topCell: Cell = this.getCell(cellCoords.col, cellCoords.row - 1);
-                let topTileColorID: tileColorID;
 
                 if (topCell && !topCell.isDisabled && topCell.tile) {
-                    topTileColorID = topCell.tile.getColorID();
-                    if (!leftTileColorID || topTileColorID !== leftTileColorID) exeptions.push(topTileColorID);
+                    let topTileColorID: tileColorID = topCell.tile.getColorID();
+                    exeptions.push(topTileColorID);
                 }
 
                 let randomColorID: tileColorID = this.randomColorID(exeptions);
