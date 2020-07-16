@@ -132,13 +132,9 @@ export default class FieldController extends cc.Component {
             colorNumber = Number.parseInt(colorName);
             if (Number.isNaN(colorNumber)) return;
 
-            if (exeptions) {
-                for (let i: number = 0; i < exeptions.length; i++) {
-                    if (exeptions[i] === colorNumber) return;
-                }
+            if (!exeptions || (exeptions.indexOf(colorNumber) === -1)) {
+                availableColors.push(colorNumber);
             }
-
-            availableColors.push(colorNumber);
         });
 
         let randomAvailableColorIndex: number = Math.floor(Math.random() * availableColors.length);
