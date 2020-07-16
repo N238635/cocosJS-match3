@@ -13,9 +13,9 @@ export default class GameController extends cc.Component {
         this.field.printField();
         this.field.initField();
         this.field.everyCell((cell: Cell) => {
-            if (!cell.isDisabled) {
+            if (!cell.isDisabled && cell.coords.row < 6) {
                 let tile = this.field.createRandomColorTile();
-                cell.setTile(tile);
+                cell.tile = tile;
             }
         });
     }
