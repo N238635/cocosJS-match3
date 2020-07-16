@@ -97,12 +97,29 @@ export default class FieldController extends cc.Component {
 
     }
 
-    private randomColorID(): tileColorID {
-        let colorNames: string[] = Object.keys(tileColorID).filter(n => isNaN(Number(n)));
-        let randomNameIndex: number = Math.floor(Math.random() * colorNames.length);
-        let color: string = colorNames[randomNameIndex];
+    private randomColorID(exeptions?: tileColorID[]): tileColorID {
+        let colorNames: string[] = Object.keys(tileColorID);
 
-        return tileColorID[color];
+        let availableColors: tileColorID[] = [];
+        let colorNumber: number;
+
+        colorNames.forEach((colorName: string) => {
+            colorNumber = Number.parseInt(colorName);
+            if (Number.isNaN(colorNumber)) return;
+
+            if (exeptions) {
+                for (let i: number = 0; i < exeptions.length; i++) {
+                    if (exeptions[i] === colorNumber) return;
+                }
+            }
+
+            availableColors.push(colorNumber);
+        });
+
+        let randomAvailableColorIndex: number = Math.floor(Math.random() * availableColors.length);
+        let colorID: tileColorID = availableColors[randomAvailableColorIndex];
+
+        return colorID;
     }
 
     private getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
