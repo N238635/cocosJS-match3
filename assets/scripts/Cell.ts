@@ -55,14 +55,9 @@ export default class Cell extends cc.Component {
         return cc.v2(62 * (coords.col - 4), 62 * (4 - coords.row));
     }
 
-    public setPositionFromAbsolute(absolutePosition: cc.Vec2): void {
+    public setAbsolutePosition(absolutePosition: cc.Vec2): void {
         let pos: cc.Vec2 = this.node.parent.convertToNodeSpaceAR(absolutePosition);
-        pos.addSelf(this.centerPositionCorrection());
         this.node.setPosition(pos);
-    }
-
-    private centerPositionCorrection(): cc.Vec2 {
-        return cc.v2(0.5 * this.node.width, -0.5 * this.node.height);
     }
 
     private updateSpriteFrame(): void {

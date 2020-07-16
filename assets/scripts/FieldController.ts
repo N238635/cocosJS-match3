@@ -66,7 +66,7 @@ export default class FieldController extends cc.Component {
                 cell.coords = cellCoords;
 
                 absoluteCellPosition = this.getAbsolutePositionOfCoords(cellCoords);
-                cell.setPositionFromAbsolute(absoluteCellPosition);
+                cell.setAbsolutePosition(absoluteCellPosition);
 
                 this._field[row][col] = cell;
             }
@@ -116,10 +116,6 @@ export default class FieldController extends cc.Component {
         });
     }
 
-    public checkCombinations() {
-
-    }
-
     private randomColorID(exeptions?: tileColorID[]): tileColorID {
         let colorNames: string[] = Object.keys(tileColorID);
 
@@ -141,13 +137,34 @@ export default class FieldController extends cc.Component {
         return colorID;
     }
 
-    private getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
+    public getCoordsFromAbsolutePosition(absolutePosition: cc.Vec2): Coords {
+        const { columns, rows, canvas, cell } = this.config.json;
+
+        // Вычитаем смещение клетки из абсолютной позиции
+        absolutePosition.subSelf(this.cellCenterPosition());
+
+        let column: number =  columns / 2 + (absolutePosition.x / cell.width - canvas.width / 2);
+        let row: number = rows / 2 - (absolutePosition.y / cell.height - canvas.height / 2)
+
+        return new Coords(column, row);
+    }
+
+    public getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
         const { columns, rows, canvas, cell } = this.config.json;
 
         let absoluteX: number = canvas.width / 2 - (columns / 2 - coords.col) * cell.width;
         let absoluteY: number = canvas.height / 2 + (rows / 2 - coords.row) * cell.height;
+        let absolutePosition: cc.Vec2 = cc.v2(absoluteX, absoluteY);
 
-        return cc.v2(absoluteX, absoluteY);
+        // Коррекция цетра клетки для правильной отрисовки
+        absolutePosition.addSelf(this.cellCenterPosition());
+
+        return absolutePosition;
+    }
+
+    private cellCenterPosition(): cc.Vec2 {
+        const { cell } = this.config.json;
+        return cc.v2(0.5 * cell.width, -0.5 * cell.height);
     }
 
     private createCell(): Cell {
