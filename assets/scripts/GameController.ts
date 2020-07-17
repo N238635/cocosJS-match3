@@ -12,8 +12,9 @@ export default class GameController extends cc.Component {
 
     public selectedTile: Tile;
 
+    private _clickedTile: Tile;
+
     public selectTile(tile: Tile): void {
-        this.unselectTile();
         this.selectedTile = tile;
         this.selectedTile.select();
     }
@@ -44,13 +45,65 @@ export default class GameController extends cc.Component {
 
     private onMouseDown(event: cc.Event.EventMouse): void {
         let mousePosition: cc.Vec2 = event.getLocation();
-        let clickedTile: Tile = this.getTileFromPosition(mousePosition);
+        let tile: Tile = this.getTileFromPosition(mousePosition);
 
-        if (clickedTile) this.selectTile(clickedTile);
+        this.unselectTile();
+
+        if (tile) {
+            let distance: number = this.distanceToClickedTile(tile);
+
+            if (distance === 1) {
+                this.swapWithClickedTile(tile);
+            } else {
+                this.node.on(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
+                if (distance === 0) tile = null;
+            }
+
+            this._clickedTile = tile;
+        }
     }
 
     private onMouseUp(event: cc.Event.EventMouse): void {
+        let mousePosition: cc.Vec2 = event.getLocation();
+        let tile: Tile = this.getTileFromPosition(mousePosition);
 
+        this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
+
+        if (this.distanceToClickedTile(tile) === 0) {
+            this.selectTile(tile);
+        }
+    }
+
+    private onSwipe(event: cc.Event.EventMouse): void {
+        let mousePosition: cc.Vec2 = event.getLocation();
+        let tile: Tile = this.getTileFromPosition(mousePosition);
+
+        if (tile) {
+            let distance: number = this.distanceToClickedTile(tile);
+
+            if (distance === 1) this.swapWithClickedTile(tile);
+
+            if (distance !== 0) {
+                this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
+                this._clickedTile = null;
+            }
+        }
+    }
+
+    private swapWithClickedTile(clickedTile: Tile): void {
+        if (this._clickedTile) {
+            let coords1: Coords = clickedTile.coords;
+            let coords2: Coords = this._clickedTile.coords;
+            let distance: number = Coords.distance(coords1, coords2);
+
+            cc.log(`swap: [${coords1.col}, ${coords1.row}], [${coords2.col}, ${coords2.row}] : ${distance}`);
+        }
+    }
+
+    private distanceToClickedTile(tile: Tile): number {
+        if (!this._clickedTile || !tile) return;
+
+        return Coords.distance(this._clickedTile.coords, tile.coords);
     }
 
     private getTileFromPosition(pos: cc.Vec2): Tile {
