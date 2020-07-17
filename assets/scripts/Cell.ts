@@ -11,13 +11,14 @@ export default class Cell extends cc.Component {
     @property(cc.Sprite) background: cc.Sprite = null;
 
     public isDisabled: boolean = true;
+    public coords: Coords;
 
     get tile(): Tile { return this._tile }
 
     set tile(tile: Tile) {
         this._tile = tile;
         this._tile.setPosition(this.node.getPosition());
-        this._tile.coords = this._coords;
+        this._tile.coords = this.coords;
     }
 
     get isDark(): boolean { return this._isDark }
@@ -25,13 +26,6 @@ export default class Cell extends cc.Component {
     set isDark(isDark: boolean) {
         this._isDark = isDark;
         this.updateSpriteFrame();
-    }
-
-    get coords(): Coords { return this._coords }
-
-    set coords(coords: Coords) {
-        this._coords = coords;
-        //this.updatePosition();
     }
 
     private _tile: Tile;
@@ -44,15 +38,6 @@ export default class Cell extends cc.Component {
 
     public removeTile(): void {
         this._tile = null;
-    }
-
-    public updatePosition(): void {
-        let pos: cc.Vec2 = this.getPositionOfCoords(this._coords);
-        this.node.setPosition(pos);
-    }
-
-    public getPositionOfCoords(coords: Coords): cc.Vec2 {
-        return cc.v2(62 * (coords.col - 4), 62 * (4 - coords.row));
     }
 
     public setAbsolutePosition(absolutePosition: cc.Vec2): void {
