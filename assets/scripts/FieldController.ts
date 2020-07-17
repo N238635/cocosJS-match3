@@ -66,6 +66,8 @@ export default class FieldController extends cc.Component {
                 cell.coords = cellCoords;
 
                 absoluteCellPosition = this.getAbsolutePositionOfCoords(cellCoords);
+                // Коррекция цетра клетки для правильной отрисовки
+                absoluteCellPosition.addSelf(this.cellCenterPosition());
                 cell.setAbsolutePosition(absoluteCellPosition);
 
                 this._field[row][col] = cell;
@@ -152,9 +154,6 @@ export default class FieldController extends cc.Component {
         let absoluteX: number = canvas.width / 2 - (columns / 2 - coords.col) * cell.width;
         let absoluteY: number = canvas.height / 2 + (rows / 2 - coords.row) * cell.height;
         let absolutePosition: cc.Vec2 = cc.v2(absoluteX, absoluteY);
-
-        // Коррекция цетра клетки для правильной отрисовки
-        absolutePosition.addSelf(this.cellCenterPosition());
 
         return absolutePosition;
     }
