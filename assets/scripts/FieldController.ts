@@ -140,13 +140,10 @@ export default class FieldController extends cc.Component {
     public getCoordsFromAbsolutePosition(absolutePosition: cc.Vec2): Coords {
         const { columns, rows, canvas, cell } = this.config.json;
 
-        // Вычитаем смещение клетки из абсолютной позиции
-        absolutePosition.subSelf(this.cellCenterPosition());
+        let column: number =  columns / 2 + (absolutePosition.x - canvas.width / 2) / cell.width;
+        let row: number = rows / 2 - (absolutePosition.y - canvas.height / 2) / cell.height;
 
-        let column: number =  columns / 2 + (absolutePosition.x / cell.width - canvas.width / 2);
-        let row: number = rows / 2 - (absolutePosition.y / cell.height - canvas.height / 2)
-
-        return new Coords(column, row);
+        return new Coords(Math.floor(column), Math.floor(row));
     }
 
     public getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
