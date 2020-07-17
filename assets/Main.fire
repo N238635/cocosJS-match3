@@ -567,8 +567,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 62,
-      "height": 62
+      "width": 0,
+      "height": 0
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -646,7 +646,7 @@
       "__id__": 16
     },
     "whiteCircle": {
-      "__uuid__": "da1629f1-4913-4bae-84a5-cb62449c3322"
+      "__uuid__": "0cdd936b-2cea-4e56-a855-0591d8f5c1c5"
     },
     "_id": "0flRQcV55H3ZBJ8Y3kKlt3"
   },
