@@ -53,7 +53,7 @@ export default class GameController extends cc.Component {
         if (tile) {
             let distance: number = this.distanceToClickedTile(tile);
 
-            // Если между координатам предыдущего и этого нажатия одна клетка, то меняем их местами
+            // Если между координатами этого и предыдущего нажатий одна клетка, то меняем их местами
             if (distance === 1) {
                 this.swapWithClickedTile(tile);
             } else {
@@ -61,7 +61,7 @@ export default class GameController extends cc.Component {
                 this.node.on(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
             }
 
-            // Если меняем местами, либо клик по уже выделенному тайлу
+            // Если меняем местами, либо повторный клик (по одному тайлу),
             // то не считаем за начало нажатия (и не выделяем)
             if (distance === 1 || distance === 0) tile = null;
 
