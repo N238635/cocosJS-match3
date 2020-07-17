@@ -101,11 +101,28 @@ export default class GameController extends cc.Component {
         }
     }
 
-    private swapWithClickedTile(clickedTile: Tile): void {
-        if (this._clickedTile) {
-            let coords1: Coords = clickedTile.coords;
+    private swapWithClickedTile(currentTile: Tile): void {
+        if (this._clickedTile && currentTile) {
+            let coords1: Coords = currentTile.coords;
             let coords2: Coords = this._clickedTile.coords;
             let distance: number = Coords.distance(coords1, coords2);
+
+            let cell1: Cell = this.field.getCell(coords1);
+            let cell2: Cell = this.field.getCell(coords2);
+
+            let cell1AbsolutePos: cc.Vec2 = cell1.node.convertToWorldSpaceAR(cc.v2(0, 0));
+            let cell2AbsolutePos: cc.Vec2 = cell2.node.convertToWorldSpaceAR(cc.v2(0, 0));
+
+            let tile1NewPos: cc.Vec2 = cell2.node.convertToNodeSpaceAR(cell1AbsolutePos);
+            let tile2NewPos: cc.Vec2 = cell1.node.convertToNodeSpaceAR(cell2AbsolutePos);
+
+            console.log(currentTile.node.getPosition(), tile1NewPos);
+
+            // cell2.removeTile();
+            // cc.tween(currentTile).to(0.2, { position: tile1NewPos }).start(); // call(() => { cell2.tile = currentTile }).start();
+            
+            // cell1.removeTile();
+            // cc.tween(this._clickedTile).to(0.2, { position: cc.v3(tile2NewPos, 0) }).start();// call(() => { cell1.tile = this._clickedTile }).start();
 
             cc.log(`swap: [${coords1.col}, ${coords1.row}], [${coords2.col}, ${coords2.row}] : ${distance}`);
         }
