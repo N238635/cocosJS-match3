@@ -39,7 +39,6 @@ export default class FieldController extends cc.Component {
         let tileNode: cc.Node = cc.instantiate(this.tilePrefab);
         let tile: Tile = tileNode.getComponent(Tile);
 
-        tile.setParent(this.node);
         tile.setType(type);
 
         if (colorID || colorID === 0) tile.setColorID(colorID);
@@ -66,8 +65,6 @@ export default class FieldController extends cc.Component {
                 cell.coords = cellCoords;
 
                 absoluteCellPosition = this.getAbsolutePositionOfCoords(cellCoords);
-                // Коррекция цетра клетки для правильной отрисовки
-                absoluteCellPosition.addSelf(this.cellCenterPosition());
                 cell.setAbsolutePosition(absoluteCellPosition);
 
                 this._field[row][col] = cell;
@@ -142,8 +139,8 @@ export default class FieldController extends cc.Component {
     public getCoordsFromAbsolutePosition(absolutePosition: cc.Vec2): Coords {
         const { columns, rows, canvas, cell } = this.config.json;
 
-        let column: number =  columns / 2 + (absolutePosition.x - canvas.width / 2) / cell.width;
-        let row: number = rows / 2 - (absolutePosition.y - canvas.height / 2) / cell.height;
+        let column: number = (absolutePosition.x - canvas.leftPadding) / cell.width
+        let row: number = (canvas.height - absolutePosition.y - canvas.topPadding) / cell.height;
 
         return new Coords(Math.floor(column), Math.floor(row));
     }
@@ -151,8 +148,8 @@ export default class FieldController extends cc.Component {
     public getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
         const { columns, rows, canvas, cell } = this.config.json;
 
-        let absoluteX: number = canvas.width / 2 - (columns / 2 - coords.col) * cell.width;
-        let absoluteY: number = canvas.height / 2 + (rows / 2 - coords.row) * cell.height;
+        let absoluteX: number = canvas.leftPadding + coords.col * cell.width;
+        let absoluteY: number = canvas.height - (canvas.topPadding + coords.row * cell.height);
         let absolutePosition: cc.Vec2 = cc.v2(absoluteX, absoluteY);
 
         return absolutePosition;
