@@ -45,8 +45,9 @@ export default class Coords {
     }
 
     static distance(coords1: Coords, coords2: Coords): number {
-        let colDistance = Math.abs(coords1.col - coords2.col);
-        let rowDistance = Math.abs(coords1.row - coords2.row);
+        let colDistance: number = Math.abs(coords1.col - coords2.col);
+        let rowDistance: number = Math.abs(coords1.row - coords2.row);
+
         // Корень суммы квадратов катетов
         return Math.sqrt(colDistance ** 2 + rowDistance ** 2);
     }
