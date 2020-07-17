@@ -64,12 +64,10 @@ export default class Tile extends cc.Component {
     }
 
     public select() {
-        this.node.zIndex = 1;
-        cc.tween(this.node).to(0.1, { scale: 1.25 }).start();
+        cc.tween(this.node).to(0.1, { scale: 1.2 }).start();
     }
 
     public unselect() {
-        this.node.zIndex = 0;
         cc.tween(this.node).to(0.1, { scale: 1 }).start();
     }
 
