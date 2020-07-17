@@ -63,6 +63,16 @@ export default class Tile extends cc.Component {
         this.node.setPosition(pos);
     }
 
+    public select() {
+        this.node.zIndex = 1;
+        cc.tween(this.node).to(0.1, { scale: 1.25 }).start();
+    }
+
+    public unselect() {
+        this.node.zIndex = 0;
+        cc.tween(this.node).to(0.1, { scale: 1 }).start();
+    }
+
     public remove() {
         this.node.destroy();
     }
