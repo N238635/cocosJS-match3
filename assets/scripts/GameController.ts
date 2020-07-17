@@ -33,13 +33,13 @@ export default class GameController extends cc.Component {
     }
 
     protected onEnable() : void {
-        this.node.on(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown);
-        this.node.on(cc.Node.EventType.MOUSE_UP, this.onMouseUp);
+        this.node.on(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        this.node.on(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
     }
 
     protected onDisable() : void {
-        this.node.off(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown);
-        this.node.off(cc.Node.EventType.MOUSE_UP, this.onMouseUp);
+        this.node.off(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        this.node.off(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
     }
 
     private onMouseDown(event: cc.Event.EventMouse) {
