@@ -26,22 +26,36 @@ export default class GameController extends cc.Component {
     }
 
     protected onLoad(): void {
-        this.node.on(cc.Node.EventType.MOUSE_DOWN, (event: cc.Event.EventMouse) => {
-            let absoluteMousePosition: cc.Vec2 = event.getLocation();
-            cc.log(absoluteMousePosition.x, absoluteMousePosition.y);
-            let fieldCoords: Coords = this.field.getCoordsFromAbsolutePosition(absoluteMousePosition);
-            cc.log(fieldCoords.col, fieldCoords.row);
-            let clickedCell: Cell = this.field.getCell(fieldCoords);
-
-            if (clickedCell && !clickedCell.isDisabled && clickedCell.tile) {
-                let tile: Tile = clickedCell.tile;
-                this.selectTile(tile);
-            }
-        });
-
         this.field.printField();
         this.field.initField();
 
         this.field.generateRandomTiles();
+    }
+
+    protected onEnable() : void {
+        this.node.on(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown);
+        this.node.on(cc.Node.EventType.MOUSE_UP, this.onMouseUp);
+    }
+
+    protected onDisable() : void {
+        this.node.off(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown);
+        this.node.off(cc.Node.EventType.MOUSE_UP, this.onMouseUp);
+    }
+
+    private onMouseDown(event: cc.Event.EventMouse) {
+        let absoluteMousePosition: cc.Vec2 = event.getLocation();
+        cc.log(absoluteMousePosition.x, absoluteMousePosition.y);
+        let fieldCoords: Coords = this.field.getCoordsFromAbsolutePosition(absoluteMousePosition);
+        cc.log(fieldCoords.col, fieldCoords.row);
+        let clickedCell: Cell = this.field.getCell(fieldCoords);
+
+        if (clickedCell && !clickedCell.isDisabled && clickedCell.tile) {
+            let tile: Tile = clickedCell.tile;
+            this.selectTile(tile);
+        }
+    }
+
+    private onMouseUp(event: cc.Event.EventMouse): void {
+
     }
 }
