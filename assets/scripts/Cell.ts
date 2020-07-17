@@ -19,7 +19,6 @@ export default class Cell extends cc.Component {
         this._tile = tile;
         this._tile.setParent(this.node);
         this._tile.coords = this.coords;
-        this._tile.setPosition(cc.v2(0, 0));
     }
 
     get isDark(): boolean { return this._isDark }
