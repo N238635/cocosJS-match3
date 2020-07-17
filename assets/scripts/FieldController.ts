@@ -15,10 +15,10 @@ export default class FieldController extends cc.Component {
     private _field: Cell[][] = [];
 
     public everyCell(callback: (cell: Cell) => void): void {
-        const { columns, rows } = this.config.json;
+        const { field } = this.config.json;
 
-        for (let row: number = 0; row < rows; row++) {
-            for (let col: number = 0; col < columns; col++) {
+        for (let row: number = 0; row < field.rows; row++) {
+            for (let col: number = 0; col < field.columns; col++) {
                 callback(this.getCell(col, row));
             }
         }
@@ -48,16 +48,16 @@ export default class FieldController extends cc.Component {
 
     // Заполняем поле клетками
     public initField(): void {
-        const { columns, rows, fieldLayout, cell: cellParams } = this.config.json;
+        const { field, cell: cellParams } = this.config.json;
         let cell: Cell, cellCoords: Coords, absoluteCellPosition: cc.Vec2;
 
-        for (let row: number = 0; row < rows; row++) {
+        for (let row: number = 0; row < field.rows; row++) {
             this._field[row] = [];
 
-            for (let col: number = 0; col < columns; col++) {
+            for (let col: number = 0; col < field.columns; col++) {
                 cell = this.createCell();
 
-                cell.isDisabled = fieldLayout[row][col] === 0;
+                cell.isDisabled = field.layout[row][col] === 0;
                 cell.isDark = this.isEven(row) === this.isEven(col);
                 cell.node.setContentSize(cellParams.width, cellParams.height);
 
@@ -73,13 +73,13 @@ export default class FieldController extends cc.Component {
     }
 
     public printField(): void {
-        const { fieldLayout, rows, columns } = this.config.json;
+        const { field } = this.config.json;
 
         let str: string = "";
 
-        for (let row: number = 0; row < rows; row++) {
-            for (let col: number = 0; col < columns; col++) {
-                str += fieldLayout[row][col] === 1 ? 'O ' : 'X ';
+        for (let row: number = 0; row < field.rows; row++) {
+            for (let col: number = 0; col < field.columns; col++) {
+                str += field.layout[row][col] === 1 ? 'O ' : 'X ';
             }
             str += '\n';
         }
