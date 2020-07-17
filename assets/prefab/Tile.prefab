@@ -44,8 +44,8 @@
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
-      "x": 0.5,
-      "y": 0.5
+      "x": 0,
+      "y": 1
     },
     "_trs": {
       "__type__": "TypedArray",
@@ -114,6 +114,9 @@
       "__id__": 1
     },
     "_enabled": true,
+    "sprite": {
+      "__id__": 2
+    },
     "whiteCircle": {
       "__uuid__": "da1629f1-4913-4bae-84a5-cb62449c3322"
     },
