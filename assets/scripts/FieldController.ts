@@ -137,7 +137,7 @@ export default class FieldController extends cc.Component {
     }
 
     public getCoordsFromAbsolutePosition(absolutePosition: cc.Vec2): Coords {
-        const { columns, rows, canvas, cell } = this.config.json;
+        const { canvas, cell } = this.config.json;
 
         let column: number = (absolutePosition.x - canvas.leftPadding) / cell.width
         let row: number = (canvas.height - absolutePosition.y - canvas.topPadding) / cell.height;
@@ -146,18 +146,12 @@ export default class FieldController extends cc.Component {
     }
 
     public getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
-        const { columns, rows, canvas, cell } = this.config.json;
+        const { canvas, cell } = this.config.json;
 
         let absoluteX: number = canvas.leftPadding + coords.col * cell.width;
         let absoluteY: number = canvas.height - (canvas.topPadding + coords.row * cell.height);
-        let absolutePosition: cc.Vec2 = cc.v2(absoluteX, absoluteY);
 
-        return absolutePosition;
-    }
-
-    private cellCenterPosition(): cc.Vec2 {
-        const { cell } = this.config.json;
-        return cc.v2(0.5 * cell.width, -0.5 * cell.height);
+        return cc.v2(absoluteX, absoluteY);
     }
 
     private createCell(): Cell {
