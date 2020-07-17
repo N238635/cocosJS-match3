@@ -39,9 +39,9 @@ export default class FieldController extends cc.Component {
         let tileNode: cc.Node = cc.instantiate(this.tilePrefab);
         let tile: Tile = tileNode.getComponent(Tile);
 
-        tile.setType(type);
+        tile.type = type;
 
-        if (colorID || colorID === 0) tile.setColorID(colorID);
+        if (colorID || colorID === 0) tile.colorID = colorID;
 
         return tile;
     }
@@ -87,23 +87,23 @@ export default class FieldController extends cc.Component {
         cc.log(str);
     }
 
-    public generateRandomTiles() {
+    public generateRandomTiles(): void {
         this.everyCell((cell: Cell) => {
-            if (!cell.isDisabled && cell.coords.row < 6) {
+            if (!cell.isDisabled) {
                 let cellCoords: Coords = cell.coords;
                 let exeptions: tileColorID[] = [];
 
                 let leftCell: Cell = this.getCell(cellCoords.col - 1, cellCoords.row);
 
                 if (leftCell && !leftCell.isDisabled && leftCell.tile) {
-                    let leftTileColorID: tileColorID = leftCell.tile.getColorID();
+                    let leftTileColorID: tileColorID = leftCell.tile.colorID;
                     exeptions.push(leftTileColorID);
                 }
 
                 let topCell: Cell = this.getCell(cellCoords.col, cellCoords.row - 1);
 
                 if (topCell && !topCell.isDisabled && topCell.tile) {
-                    let topTileColorID: tileColorID = topCell.tile.getColorID();
+                    let topTileColorID: tileColorID = topCell.tile.colorID;
                     exeptions.push(topTileColorID);
                 }
 
@@ -113,6 +113,24 @@ export default class FieldController extends cc.Component {
                 cell.tile = tile;
             }
         });
+    }
+
+    public getCoordsFromAbsolutePosition(absolutePosition: cc.Vec2): Coords {
+        const { canvas, cell } = this.config.json;
+
+        let column: number = (absolutePosition.x - canvas.leftPadding) / cell.width
+        let row: number = (canvas.height - absolutePosition.y - canvas.topPadding) / cell.height;
+
+        return new Coords(Math.floor(column), Math.floor(row));
+    }
+
+    public getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
+        const { canvas, cell } = this.config.json;
+
+        let absoluteX: number = canvas.leftPadding + coords.col * cell.width;
+        let absoluteY: number = canvas.height - (canvas.topPadding + coords.row * cell.height);
+
+        return cc.v2(absoluteX, absoluteY);
     }
 
     private randomColorID(exeptions?: tileColorID[]): tileColorID {
@@ -134,24 +152,6 @@ export default class FieldController extends cc.Component {
         let colorID: tileColorID = availableColors[randomAvailableColorIndex];
 
         return colorID;
-    }
-
-    public getCoordsFromAbsolutePosition(absolutePosition: cc.Vec2): Coords {
-        const { canvas, cell } = this.config.json;
-
-        let column: number = (absolutePosition.x - canvas.leftPadding) / cell.width
-        let row: number = (canvas.height - absolutePosition.y - canvas.topPadding) / cell.height;
-
-        return new Coords(Math.floor(column), Math.floor(row));
-    }
-
-    public getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
-        const { canvas, cell } = this.config.json;
-
-        let absoluteX: number = canvas.leftPadding + coords.col * cell.width;
-        let absoluteY: number = canvas.height - (canvas.topPadding + coords.row * cell.height);
-
-        return cc.v2(absoluteX, absoluteY);
     }
 
     private createCell(): Cell {

@@ -11,6 +11,7 @@ export default class Cell extends cc.Component {
     @property(cc.Sprite) background: cc.Sprite = null;
 
     public isDisabled: boolean = true;
+    public isDark: boolean = true;
     public coords: Coords;
 
     get tile(): Tile { return this._tile }
@@ -21,16 +22,7 @@ export default class Cell extends cc.Component {
         this._tile.coords = this.coords;
     }
 
-    get isDark(): boolean { return this._isDark }
-
-    set isDark(isDark: boolean) {
-        this._isDark = isDark;
-        this.updateSpriteFrame();
-    }
-
     private _tile: Tile;
-    private _coords: Coords = new Coords();
-    private _isDark: boolean;
 
     public setParent(parent: cc.Node): void {
         this.node.parent = parent;
@@ -45,9 +37,13 @@ export default class Cell extends cc.Component {
         this.node.setPosition(pos);
     }
 
+    protected start(): void {
+        this.updateSpriteFrame();
+    }
+
     private updateSpriteFrame(): void {
         if (!this.isDisabled) {
-            this.background.spriteFrame = this._isDark ? this.greySpriteFrame : this.whiteSpriteFrame;
+            this.background.spriteFrame = this.isDark ? this.greySpriteFrame : this.whiteSpriteFrame;
         }
     }
 }

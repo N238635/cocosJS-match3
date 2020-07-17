@@ -34,45 +34,35 @@ export default class Tile extends cc.Component {
     @property(cc.SpriteFrame) whiteCircle: cc.SpriteFrame = null;
 
     public coords: Coords = new Coords();
-
-    private _colorID: tileColorID;
-    private _type: tileType = tileType.Color;
+    public type: tileType = tileType.Color;
+    public colorID: tileColorID;
 
     public setParent(parent: cc.Node): void {
         this.node.parent = parent;
-    }
-
-    public getType(): tileType { return this._type }
-
-    public setType(type: tileType): void {
-        this._type = type;
-        this.setSprite();
-    }
-
-    public getColorID(): tileColorID { return this._colorID }
-
-    public setColorID(colorID: tileColorID): void {
-        this._colorID = colorID;
-
-        if (colorsRGB[this._colorID]) {
-            this.node.color = cc.color(...colorsRGB[this._colorID]);
-        }
     }
 
     public setPosition(pos: cc.Vec2): void {
         this.node.setPosition(pos);
     }
 
-    public select() {
+    public remove(): void {
+        this.node.destroy();
+    }
+
+    public select(): void {
         cc.tween(this.node).to(0.1, { scale: 1.2 }).start();
     }
 
-    public unselect() {
+    public unselect(): void {
         cc.tween(this.node).to(0.1, { scale: 1 }).start();
     }
 
-    public remove() {
-        this.node.destroy();
+    protected start(): void {
+        this.setSprite();
+
+        if (colorsRGB[this.colorID]) {
+            this.node.color = cc.color(...colorsRGB[this.colorID]);
+        }
     }
 
     private setSprite(): void {
