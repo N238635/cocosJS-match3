@@ -47,18 +47,25 @@ export default class GameController extends cc.Component {
         let mousePosition: cc.Vec2 = event.getLocation();
         let tile: Tile = this.getTileFromPosition(mousePosition);
 
+        // При любом клике снимаем выделения тайла
         this.unselectTile();
 
         if (tile) {
             let distance: number = this.distanceToClickedTile(tile);
 
+            // Если между координатам предыдущего и этого нажатия одна клетка, то меняем их местами
             if (distance === 1) {
                 this.swapWithClickedTile(tile);
             } else {
+                // Если не меняем местами - начинаем слушать движение мыши
                 this.node.on(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
-                if (distance === 0) tile = null;
             }
 
+            // Если меняем местами, либо клик по уже выделенному тайлу
+            // то не считаем за начало нажатия (и не выделяем)
+            if (distance === 1 || distance === 0) tile = null;
+
+            // Начало нажатия - текущий тайл
             this._clickedTile = tile;
         }
     }
@@ -67,8 +74,10 @@ export default class GameController extends cc.Component {
         let mousePosition: cc.Vec2 = event.getLocation();
         let tile: Tile = this.getTileFromPosition(mousePosition);
 
+        // Конец нажатия - перестаем слушать движения мыши
         this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
 
+        // Если координаты начала и конца клика совпадают - выделяем тайл
         if (this.distanceToClickedTile(tile) === 0) {
             this.selectTile(tile);
         }
@@ -81,8 +90,10 @@ export default class GameController extends cc.Component {
         if (tile) {
             let distance: number = this.distanceToClickedTile(tile);
 
+            // Если курсор над тайлом в 1 клетке от начала нажатия - меняем местами
             if (distance === 1) this.swapWithClickedTile(tile);
 
+            // Если курсор вышел за пределы тайла - перестаем слушать и обнуляем начало нажатия
             if (distance !== 0) {
                 this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
                 this._clickedTile = null;
