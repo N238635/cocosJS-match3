@@ -15,6 +15,7 @@ export default class FieldController extends cc.Component {
     public selectedTile: Tile;
 
     private _clickedTile: Tile;
+    private _canSwipe: boolean = false;
 
     private _field: Cell[][] = [];
 
@@ -152,11 +153,14 @@ export default class FieldController extends cc.Component {
     protected onEnable(): void {
         this.node.on(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
         this.node.on(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
+        this.node.on(cc.Node.EventType.MOUSE_MOVE, this.onMouseMove, this);
     }
 
     protected onDisable(): void {
         this.node.off(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
         this.node.off(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
+        this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onMouseMove, this);
+
     }
 
     private onMouseDown(event: cc.Event.EventMouse): void {
@@ -174,7 +178,7 @@ export default class FieldController extends cc.Component {
                 this.swapTiles(this._clickedTile, tile);
             } else {
                 // Если не меняем местами - начинаем слушать движение мыши
-                this.node.on(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
+                this._canSwipe = true;
             }
 
             // Если меняем местами, либо повторный клик (по одному тайлу),
@@ -191,7 +195,7 @@ export default class FieldController extends cc.Component {
         let tile: Tile = this.getTileFromPosition(mousePosition);
 
         // Конец нажатия - перестаем слушать движения мыши
-        this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
+        this._canSwipe = false;
 
         // Если координаты начала и конца клика совпадают - выделяем тайл
         if (this.distanceToClickedTile(tile) === 0) {
@@ -199,7 +203,9 @@ export default class FieldController extends cc.Component {
         }
     }
 
-    private onSwipe(event: cc.Event.EventMouse): void {
+    private onMouseMove(event: cc.Event.EventMouse): void {
+        if (!this._canSwipe) return;
+
         let mousePosition: cc.Vec2 = event.getLocation();
         let tile: Tile = this.getTileFromPosition(mousePosition);
 
@@ -211,7 +217,7 @@ export default class FieldController extends cc.Component {
 
             // Если курсор вышел за пределы тайла - перестаем слушать и обнуляем начало нажатия
             if (distance !== 0) {
-                this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
+                this._canSwipe = false;
                 this._clickedTile = null;
             }
         }
