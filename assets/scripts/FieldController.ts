@@ -170,24 +170,24 @@ export default class FieldController extends cc.Component {
         // При любом клике снимаем выделения тайла
         this.unselectTile();
 
-        if (tile) {
-            let distance: number = this.distanceToClickedTile(tile);
+        if (!tile) return;
 
-            // Если между координатами этого и предыдущего нажатий одна клетка, то меняем их местами
-            if (distance === 1) {
-                this.swapTiles(this._clickedTile, tile);
-            } else {
-                // Если не меняем местами - начинаем слушать движение мыши
-                this._canSwipe = true;
-            }
+        let distance: number = this.distanceToClickedTile(tile);
 
-            // Если меняем местами, либо повторный клик (по одному тайлу),
-            // то не считаем за начало нажатия (и не выделяем)
-            if (distance === 1 || distance === 0) tile = null;
-
-            // Начало нажатия - текущий тайл
-            this._clickedTile = tile;
+        // Если между координатами этого и предыдущего нажатий одна клетка, то меняем их местами
+        if (distance === 1) {
+            this.swapTiles(this._clickedTile, tile);
+        } else {
+            // Если не меняем местами - начинаем слушать движение мыши
+            this._canSwipe = true;
         }
+
+        // Если меняем местами, либо повторный клик (по одному тайлу),
+        // то не считаем за начало нажатия (и не выделяем)
+        if (distance === 1 || distance === 0) tile = null;
+
+        // Начало нажатия - текущий тайл
+        this._clickedTile = tile;
     }
 
     private onMouseUp(event: cc.Event.EventMouse): void {
@@ -206,21 +206,33 @@ export default class FieldController extends cc.Component {
     private onMouseMove(event: cc.Event.EventMouse): void {
         if (!this._canSwipe) return;
 
-        let mousePosition: cc.Vec2 = event.getLocation();
-        let tile: Tile = this.getTileFromPosition(mousePosition);
+        const { cell } = this.config.json
+        const mousePosition: cc.Vec2 = event.getLocation();
+        const startPosition: cc.Vec2 = this._clickedTile.getAbsolutePosition();
 
-        if (tile) {
-            let distance: number = this.distanceToClickedTile(tile);
+        const moved: cc.Vec2 = mousePosition.sub(startPosition);
+        const movedCol: number = moved.x / (cell.width / 2);
+        const movedRow: number = moved.y / (cell.height / 2);
 
-            // Если курсор над тайлом в 1 клетке от начала нажатия - меняем местами
-            if (distance === 1) this.swapTiles(this._clickedTile, tile);
+        if (Math.abs(movedCol) < 1 && Math.abs(movedRow) < 1) return;
 
-            // Если курсор вышел за пределы тайла - перестаем слушать и обнуляем начало нажатия
-            if (distance !== 0) {
-                this._canSwipe = false;
-                this._clickedTile = null;
-            }
+        this._canSwipe = false;
+
+        let targetCoords: Coords = this._clickedTile.coords.clone();
+
+        if (movedCol >= 1) targetCoords.col++;
+        else if (movedCol <= -1) targetCoords.col--;
+
+        if (movedRow >= 1) targetCoords.row--;
+        else if (movedRow <= -1) targetCoords.row++;
+
+        let targetCell: Cell = this.getCell(targetCoords);
+
+        if (targetCell && targetCell.tile) {
+            this.swapTiles(this._clickedTile, targetCell.tile);
         }
+
+        this._clickedTile = null;
     }
 
     private swapTiles(firsTile: Tile, secondTile: Tile): void {
@@ -238,8 +250,6 @@ export default class FieldController extends cc.Component {
 
         let tile1NewPos: cc.Vec2 = cell1.node.convertToNodeSpaceAR(cell2AbsolutePos);
         let tile2NewPos: cc.Vec2 = cell2.node.convertToNodeSpaceAR(cell1AbsolutePos);
-
-        console.log(secondTile.node.getPosition(), tile1NewPos);
 
         cc.tween(secondTile.node).to(0.2, { position: tile1NewPos }).call(() => {
             cell1.tile = firsTile;
