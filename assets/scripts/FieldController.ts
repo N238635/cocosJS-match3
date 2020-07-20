@@ -12,6 +12,10 @@ export default class FieldController extends cc.Component {
     @property(cc.Prefab) cellPrefab: cc.Prefab = null;
     @property(cc.Prefab) tilePrefab: cc.Prefab = null;
 
+    public selectedTile: Tile;
+
+    private _clickedTile: Tile;
+
     private _field: Cell[][] = [];
 
     public everyCell(callback: (cell: Cell) => void): void {
@@ -44,6 +48,18 @@ export default class FieldController extends cc.Component {
         if (colorID || colorID === 0) tile.colorID = colorID;
 
         return tile;
+    }
+
+    public selectTile(tile: Tile): void {
+        this.selectedTile = tile;
+        this.selectedTile.select();
+    }
+
+    public unselectTile(): void {
+        if (this.selectedTile) {
+            this.selectedTile.unselect();
+            this.selectedTile = null;
+        }
     }
 
     // Заполняем поле клетками
@@ -131,6 +147,116 @@ export default class FieldController extends cc.Component {
         let absoluteY: number = canvas.height - (canvas.topPadding + coords.row * cell.height);
 
         return cc.v2(absoluteX, absoluteY);
+    }
+
+    protected onEnable(): void {
+        this.node.on(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        this.node.on(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
+    }
+
+    protected onDisable(): void {
+        this.node.off(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        this.node.off(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
+    }
+
+    private onMouseDown(event: cc.Event.EventMouse): void {
+        let mousePosition: cc.Vec2 = event.getLocation();
+        let tile: Tile = this.getTileFromPosition(mousePosition);
+
+        // При любом клике снимаем выделения тайла
+        this.unselectTile();
+
+        if (tile) {
+            let distance: number = this.distanceToClickedTile(tile);
+
+            // Если между координатами этого и предыдущего нажатий одна клетка, то меняем их местами
+            if (distance === 1) {
+                this.swapTiles(this._clickedTile, tile);
+            } else {
+                // Если не меняем местами - начинаем слушать движение мыши
+                this.node.on(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
+            }
+
+            // Если меняем местами, либо повторный клик (по одному тайлу),
+            // то не считаем за начало нажатия (и не выделяем)
+            if (distance === 1 || distance === 0) tile = null;
+
+            // Начало нажатия - текущий тайл
+            this._clickedTile = tile;
+        }
+    }
+
+    private onMouseUp(event: cc.Event.EventMouse): void {
+        let mousePosition: cc.Vec2 = event.getLocation();
+        let tile: Tile = this.getTileFromPosition(mousePosition);
+
+        // Конец нажатия - перестаем слушать движения мыши
+        this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
+
+        // Если координаты начала и конца клика совпадают - выделяем тайл
+        if (this.distanceToClickedTile(tile) === 0) {
+            this.selectTile(tile);
+        }
+    }
+
+    private onSwipe(event: cc.Event.EventMouse): void {
+        let mousePosition: cc.Vec2 = event.getLocation();
+        let tile: Tile = this.getTileFromPosition(mousePosition);
+
+        if (tile) {
+            let distance: number = this.distanceToClickedTile(tile);
+
+            // Если курсор над тайлом в 1 клетке от начала нажатия - меняем местами
+            if (distance === 1) this.swapTiles(this._clickedTile, tile);
+
+            // Если курсор вышел за пределы тайла - перестаем слушать и обнуляем начало нажатия
+            if (distance !== 0) {
+                this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onSwipe, this);
+                this._clickedTile = null;
+            }
+        }
+    }
+
+    private swapTiles(firsTile: Tile, secondTile: Tile): void {
+        if (!firsTile && !secondTile) return;
+
+        let coords1: Coords = secondTile.coords;
+        let coords2: Coords = firsTile.coords;
+        let distance: number = Coords.distance(coords1, coords2);
+
+        let cell1: Cell = this.getCell(coords1);
+        let cell2: Cell = this.getCell(coords2);
+
+        let cell1AbsolutePos: cc.Vec2 = cell1.node.convertToWorldSpaceAR(cc.v2(0, 0));
+        let cell2AbsolutePos: cc.Vec2 = cell2.node.convertToWorldSpaceAR(cc.v2(0, 0));
+
+        let tile1NewPos: cc.Vec2 = cell1.node.convertToNodeSpaceAR(cell2AbsolutePos);
+        let tile2NewPos: cc.Vec2 = cell2.node.convertToNodeSpaceAR(cell1AbsolutePos);
+
+        console.log(secondTile.node.getPosition(), tile1NewPos);
+
+        cc.tween(secondTile.node).to(0.2, { position: tile1NewPos }).call(() => {
+            cell1.tile = firsTile;
+        }).start();
+
+        cc.tween(firsTile.node).to(0.2, { position: tile2NewPos }).call(() => {
+            cell2.tile = secondTile;
+        }).start();
+
+        cc.log(`swap: [${coords1.col}, ${coords1.row}], [${coords2.col}, ${coords2.row}] : ${distance}`);
+    }
+
+    private distanceToClickedTile(tile: Tile): number {
+        if (!this._clickedTile || !tile) return;
+
+        return Coords.distance(this._clickedTile.coords, tile.coords);
+    }
+
+    private getTileFromPosition(pos: cc.Vec2): Tile {
+        let fieldCoords: Coords = this.getCoordsFromAbsolutePosition(pos);
+        let cell: Cell = this.getCell(fieldCoords);
+
+        if (cell && !cell.isDisabled && cell.tile) return cell.tile;
     }
 
     private randomColorID(exeptions?: tileColorID[]): tileColorID {
