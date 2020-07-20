@@ -18,7 +18,7 @@ export default class Cell extends cc.Component {
 
     set tile(tile: Tile) {
         this._tile = tile;
-        this._tile.setParent(this.node);
+        this._tile.node.setParent(this.node);
         this._tile.coords = this.coords;
     }
 
@@ -29,6 +29,7 @@ export default class Cell extends cc.Component {
     }
 
     public removeTile(): void {
+        this._tile.node.destroy();
         this._tile = null;
     }
 
