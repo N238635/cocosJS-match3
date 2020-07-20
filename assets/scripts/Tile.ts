@@ -45,6 +45,11 @@ export default class Tile extends cc.Component {
         cc.tween(this.node).to(0.1, { scale: 1 }).start();
     }
 
+    public getAbsolutePosition(): cc.Vec2 {
+        let pos: cc.Vec2 = this.node.getPosition();
+        return this.node.parent.convertToWorldSpaceAR(pos);
+    }
+
     protected start(): void {
         this.setSprite();
 
