@@ -37,18 +37,6 @@ export default class Tile extends cc.Component {
     public type: tileType = tileType.Color;
     public colorID: tileColorID;
 
-    public setParent(parent: cc.Node): void {
-        this.node.parent = parent;
-    }
-
-    public setPosition(pos: cc.Vec2): void {
-        this.node.setPosition(pos);
-    }
-
-    public remove(): void {
-        this.node.destroy();
-    }
-
     public select(): void {
         cc.tween(this.node).to(0.1, { scale: 1.2 }).start();
     }
