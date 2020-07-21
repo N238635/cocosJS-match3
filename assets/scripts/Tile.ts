@@ -45,9 +45,12 @@ export default class Tile extends cc.Component {
         cc.tween(this.node).to(0.1, { scale: 1 }).start();
     }
 
+    public convertToRelativePosition(absolutePosition: cc.Vec2): cc.Vec2 {
+        return this.node.parent.convertToNodeSpaceAR(absolutePosition);
+    }
+
     public getAbsolutePosition(): cc.Vec2 {
-        let pos: cc.Vec2 = this.node.getPosition();
-        return this.node.parent.convertToWorldSpaceAR(pos);
+        return this.node.convertToWorldSpaceAR(cc.v2());
     }
 
     protected start(): void {
