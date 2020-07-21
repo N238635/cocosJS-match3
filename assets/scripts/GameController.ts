@@ -8,9 +8,10 @@ export default class GameController extends cc.Component {
     @property(FieldController) field: FieldController = null;
 
     protected onLoad(): void {
-        this.field.printField();
         this.field.initField();
 
         this.field.generateRandomTiles();
+
+        // this.field.checkCombinations();
     }
 }
