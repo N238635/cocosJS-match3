@@ -8,6 +8,8 @@ const { ccclass, property } = cc._decorator;
 export default class FieldController extends cc.Component {
 
     @property(cc.JsonAsset) config: cc.JsonAsset = null;
+
+    @property(cc.Node) cellLayer: cc.Node = null;
     @property(cc.Node) tileLayer: cc.Node = null;
 
     @property(cc.Prefab) cellPrefab: cc.Prefab = null;
@@ -17,7 +19,6 @@ export default class FieldController extends cc.Component {
 
     private _clickedTile: Tile;
     private _canSwipe: boolean = false;
-
     private _field: Cell[][] = [];
 
     public everyCell(callback: (cell: Cell) => void): void {
@@ -137,21 +138,24 @@ export default class FieldController extends cc.Component {
     }
 
     public getCoordsFromAbsolutePosition(absolutePosition: cc.Vec2): Coords {
-        const { canvas, cell } = this.config.json;
+        const { cell, field } = this.config.json;
 
-        let column: number = (absolutePosition.x - canvas.leftPadding) / cell.width
-        let row: number = (canvas.height - absolutePosition.y - canvas.topPadding) / cell.height;
+        let relativePos: cc.Vec2 = this.node.parent.convertToNodeSpaceAR(absolutePosition);
+
+        let column: number = relativePos.x / cell.width + field.columns / 2;
+        let row: number = field.rows / 2 - relativePos.y / cell.height;
 
         return new Coords(Math.floor(column), Math.floor(row));
     }
 
     public getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
-        const { canvas, cell } = this.config.json;
+        const { cell, field } = this.config.json;
 
-        let absoluteX: number = canvas.leftPadding + coords.col * cell.width;
-        let absoluteY: number = canvas.height - (canvas.topPadding + coords.row * cell.height);
+        let relativeX: number = cell.width * (coords.col - (field.columns / 2) + 0.5);
+        let relativeY: number = cell.height * ((field.rows / 2) - coords.row - 0.5);
+        let relativePos: cc.Vec2 = cc.v2(relativeX, relativeY);
 
-        return cc.v2(absoluteX, absoluteY);
+        return this.node.parent.convertToWorldSpaceAR(relativePos);
     }
 
     protected onEnable(): void {
@@ -169,18 +173,19 @@ export default class FieldController extends cc.Component {
 
     private onMouseDown(event: cc.Event.EventMouse): void {
         let mousePosition: cc.Vec2 = event.getLocation();
-        let tile: Tile = this.getTileFromPosition(mousePosition);
+        let fieldCoords: Coords = this.getCoordsFromAbsolutePosition(mousePosition);
+        let cell: Cell = this.getCell(fieldCoords);
 
         // При любом клике снимаем выделения тайла
         this.unselectTile();
 
-        if (!tile) return;
+        if (!cell || cell.isDisabled || !cell.tile) return;
 
-        let distance: number = this.distanceToClickedTile(tile);
+        let distance: number = this.numberOfCellsApart(this._clickedTile, cell.tile);
 
         // Если между координатами этого и предыдущего нажатий одна клетка, то меняем их местами
         if (distance === 1) {
-            this.swapTiles(this._clickedTile, tile);
+            this.swapTiles(this._clickedTile, cell.tile);
         } else {
             // Если не меняем местами - начинаем слушать движение мыши
             this._canSwipe = true;
@@ -188,27 +193,27 @@ export default class FieldController extends cc.Component {
 
         // Если меняем местами, либо повторный клик (по одному тайлу),
         // то не считаем за начало нажатия (и не выделяем)
-        if (distance === 1 || distance === 0) tile = null;
-
-        // Начало нажатия - текущий тайл
-        this._clickedTile = tile;
+        this._clickedTile = distance === 1 || distance === 0 ? null : cell.tile;
     }
 
     private onMouseUp(event: cc.Event.EventMouse): void {
         let mousePosition: cc.Vec2 = event.getLocation();
-        let tile: Tile = this.getTileFromPosition(mousePosition);
+        let fieldCoords: Coords = this.getCoordsFromAbsolutePosition(mousePosition);
+        let cell: Cell = this.getCell(fieldCoords);
 
         // Конец нажатия - перестаем слушать движения мыши
         this._canSwipe = false;
 
+        if (!cell || cell.isDisabled || !cell.tile || !this._clickedTile) return;
+
         // Если координаты начала и конца клика совпадают - выделяем тайл
-        if (this.distanceToClickedTile(tile) === 0) {
-            this.selectTile(tile);
+        if (this.numberOfCellsApart(this._clickedTile, cell.tile) === 0) {
+            this.selectTile(cell.tile);
         }
     }
 
     private onMouseMove(event: cc.Event.EventMouse): void {
-        if (!this._canSwipe) return;
+        if (!this._canSwipe || !this._clickedTile) return;
 
         const { cell } = this.config.json
         const mousePosition: cc.Vec2 = event.getLocation();
@@ -242,7 +247,6 @@ export default class FieldController extends cc.Component {
 
         const coords1: Coords = secondTile.coords;
         const coords2: Coords = firstTile.coords;
-        const distance: number = Coords.distance(coords1, coords2);
 
         const cell1: Cell = this.getCell(coords1);
         const cell2: Cell = this.getCell(coords2);
@@ -261,20 +265,17 @@ export default class FieldController extends cc.Component {
             cell1.tile = firstTile;
         }).start();
 
-        cc.log(`swap: [${coords1.col}, ${coords1.row}], [${coords2.col}, ${coords2.row}] : ${distance}`);
+        cc.log(`swap: [${coords1.col}, ${coords1.row}], [${coords2.col}, ${coords2.row}]`);
     }
 
-    private distanceToClickedTile(tile: Tile): number {
-        if (!this._clickedTile || !tile) return;
+    private numberOfCellsApart(tile1: Tile, tile2: Tile): number {
+        if (!tile1 || !tile2) return;
 
-        return Coords.distance(this._clickedTile.coords, tile.coords);
-    }
+        let distanceX: number = Math.abs(tile1.coords.col - tile2.coords.col);
+        let distanceY: number = Math.abs(tile1.coords.row - tile2.coords.row);
 
-    private getTileFromPosition(pos: cc.Vec2): Tile {
-        let fieldCoords: Coords = this.getCoordsFromAbsolutePosition(pos);
-        let cell: Cell = this.getCell(fieldCoords);
-
-        if (cell && !cell.isDisabled && cell.tile) return cell.tile;
+        // Корень суммы квадратов катетов
+        return Math.sqrt(distanceX ** 2 + distanceY ** 2);
     }
 
     private randomColorID(exeptions?: tileColorID[]): tileColorID {
@@ -301,7 +302,7 @@ export default class FieldController extends cc.Component {
     private createCell(): Cell {
         let cellNode: cc.Node = cc.instantiate(this.cellPrefab);
         let cell: Cell = cellNode.getComponent(Cell);
-        cell.node.setParent(this.node);
+        cell.node.setParent(this.cellLayer);
 
         return cell;
     }
