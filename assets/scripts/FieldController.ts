@@ -245,25 +245,14 @@ export default class FieldController extends cc.Component {
     private swapTiles(firstTile: Tile, secondTile: Tile): void {
         if (!firstTile && !secondTile) return;
 
-        const coords1: Coords = secondTile.coords;
-        const coords2: Coords = firstTile.coords;
+        const coords1: Coords = firstTile.coords;
+        const coords2: Coords = secondTile.coords;
 
         const cell1: Cell = this.getCell(coords1);
         const cell2: Cell = this.getCell(coords2);
 
-        const cell1AbsolutePos: cc.Vec2 = cell1.getAbsolutePosition();
-        const cell2AbsolutePos: cc.Vec2 = cell2.getAbsolutePosition();
-
-        const tile1NewPos: cc.Vec2 = firstTile.convertToRelativePosition(cell2AbsolutePos);
-        const tile2NewPos: cc.Vec2 = firstTile.convertToRelativePosition(cell1AbsolutePos);
-
-        cc.tween(firstTile.node).to(0.2, { position: tile2NewPos }).call(() => {
-            cell2.tile = secondTile;
-        }).start();
-
-        cc.tween(secondTile.node).to(0.2, { position: tile1NewPos }).call(() => {
-            cell1.tile = firstTile;
-        }).start();
+        cell2.attractTile(firstTile);
+        cell1.attractTile(secondTile);
 
         cc.log(`swap: [${coords1.col}, ${coords1.row}], [${coords2.col}, ${coords2.row}]`);
     }

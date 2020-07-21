@@ -20,8 +20,8 @@ export default class Cell extends cc.Component {
         this._tile = tile;
         this._tile.coords = this.coords;
 
-        let cellAbsolutePos: cc.Vec2 = this.getAbsolutePosition();
-        let tileRelativePos: cc.Vec2 = this._tile.convertToRelativePosition(cellAbsolutePos);
+        const cellAbsolutePos: cc.Vec2 = this.getAbsolutePosition();
+        const tileRelativePos: cc.Vec2 = this._tile.convertToRelativePosition(cellAbsolutePos);
         this._tile.node.setPosition(tileRelativePos);
     }
 
@@ -30,6 +30,15 @@ export default class Cell extends cc.Component {
     public removeTile(): void {
         this._tile.node.destroy();
         this._tile = null;
+    }
+
+    public attractTile(tile: Tile): void {
+        const absolutePos: cc.Vec2 = this.getAbsolutePosition();
+        const tilePos: cc.Vec2 = tile.convertToRelativePosition(absolutePos);
+
+        cc.tween(tile.node).to(0.2, { position: tilePos }).call(() => {
+            this.tile = tile;
+        }).start();
     }
 
     public convertToRelativePosition(absolutePosition: cc.Vec2): cc.Vec2 {
