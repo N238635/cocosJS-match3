@@ -57,7 +57,7 @@ export default class Tile extends cc.Component {
         this.setSprite();
 
         if (colorsRGB[this.colorID]) {
-            this.node.color = cc.color(...colorsRGB[this.colorID]);
+            this.sprite.node.color = cc.color(...colorsRGB[this.colorID]);
         }
     }
 
