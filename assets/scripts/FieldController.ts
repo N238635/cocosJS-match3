@@ -22,13 +22,11 @@ export default class FieldController extends cc.Component {
     private _field: Cell[][] = [];
 
     public everyCell(callback: (cell: Cell) => void): void {
-        const { field } = this.config.json;
-
-        for (let row: number = 0; row < field.rows; row++) {
-            for (let col: number = 0; col < field.columns; col++) {
-                callback(this.getCell(col, row));
-            }
-        }
+        this.everyRow((row: number) => {
+            this.everyCol((column: number) => {
+                callback(this.getCell(column, row));
+            });
+        });
     }
 
     public getCell(coords: Coords | number, row?: number): Cell {
@@ -42,6 +40,7 @@ export default class FieldController extends cc.Component {
         return this._field[realCoords.row][realCoords.col];
     }
 
+    // TODO переместить в Cell.ts
     public createTile(type: tileType, colorID?: tileColorID): Tile {
         let tileNode: cc.Node = cc.instantiate(this.tilePrefab);
         tileNode.setParent(this.tileLayer);
@@ -54,61 +53,35 @@ export default class FieldController extends cc.Component {
         return tile;
     }
 
-    public selectTile(tile: Tile): void {
-        this.selectedTile = tile;
-        this.selectedTile.select();
-    }
-
-    public unselectTile(): void {
-        if (this.selectedTile) {
-            this.selectedTile.unselect();
-            this.selectedTile = null;
-        }
-    }
-
-    // Заполняем поле клетками
     public initField(): void {
         const { field, cell: cellParams } = this.config.json;
         let cell: Cell, cellCoords: Coords;
-        let absoluteCoordsPos: cc.Vec2, relativeCellPos: cc.Vec2;
+        let positionFromCoords: cc.Vec2, cellPosition: cc.Vec2;
 
-        for (let row: number = 0; row < field.rows; row++) {
+        this.everyRow((row: number) => {
             this._field[row] = [];
 
-            for (let col: number = 0; col < field.columns; col++) {
+            this.everyCol((col: number) => {
                 cell = this.createCell();
-
-                cell.isDisabled = field.layout[row][col] === 0;
-                cell.isDark = this.isEven(row) === this.isEven(col);
-                cell.node.setContentSize(cellParams.width, cellParams.height);
 
                 cellCoords = new Coords(col, row);
                 cell.coords = cellCoords;
 
-                absoluteCoordsPos = this.getAbsolutePositionOfCoords(cellCoords);
-                relativeCellPos = cell.convertToRelativePosition(absoluteCoordsPos);
-                cell.node.setPosition(relativeCellPos);
+                positionFromCoords = this.getAbsolutePositionFromCoords(cellCoords);
+                cellPosition = cell.convertToRelativePosition(positionFromCoords);
+
+                cell.node.setPosition(cellPosition);
+                cell.node.setContentSize(cellParams.width, cellParams.height);
+
+                cell.isDisabled = field.layout[row][col] === 0;
+                cell.isDark = this.isEven(row) === this.isEven(col);
 
                 this._field[row][col] = cell;
-            }
-        }
+            });
+        });
     }
 
-    public printField(): void {
-        const { field } = this.config.json;
-
-        let str: string = "";
-
-        for (let row: number = 0; row < field.rows; row++) {
-            for (let col: number = 0; col < field.columns; col++) {
-                str += field.layout[row][col] === 1 ? 'O ' : 'X ';
-            }
-            str += '\n';
-        }
-
-        cc.log(str);
-    }
-
+    // TODO Убрать повторение кода
     public generateRandomTiles(): void {
         this.everyCell((cell: Cell) => {
             if (!cell.isDisabled) {
@@ -117,16 +90,14 @@ export default class FieldController extends cc.Component {
 
                 let leftCell: Cell = this.getCell(cellCoords.col - 1, cellCoords.row);
 
-                if (leftCell && !leftCell.isDisabled && leftCell.tile) {
-                    let leftTileColorID: tileColorID = leftCell.tile.colorID;
-                    exeptions.push(leftTileColorID);
+                if (leftCell && leftCell.tile) {
+                    exeptions.push(leftCell.tile.colorID);
                 }
 
                 let topCell: Cell = this.getCell(cellCoords.col, cellCoords.row - 1);
 
-                if (topCell && !topCell.isDisabled && topCell.tile) {
-                    let topTileColorID: tileColorID = topCell.tile.colorID;
-                    exeptions.push(topTileColorID);
+                if (topCell && topCell.tile) {
+                    exeptions.push(topCell.tile.colorID);
                 }
 
                 let randomColorID: tileColorID = this.randomColorID(exeptions);
@@ -135,6 +106,49 @@ export default class FieldController extends cc.Component {
                 cell.tile = tile;
             }
         });
+    }
+
+    // TODO доделать
+    public checkCombinations() {
+        const directions = [
+            new Coords(-1, 0),
+            new Coords(0, -1),
+        ];
+
+        let numberOfSameCells: number;
+
+        this.everyCell((currentCell: Cell) => {
+            directions.forEach((direction: Coords) => {
+                numberOfSameCells = this.countSameColor(currentCell, direction);
+
+                if (!numberOfSameCells) return;
+
+                cc.log(numberOfSameCells);
+            });
+        });
+    }
+
+    public countSameColor(targetCell: Cell, direction: Coords): number {
+        if (!targetCell.tile) return;
+
+        let count: number = 0;
+        let isSameColor: boolean = true;
+        let nextCoords: Coords = targetCell.coords;
+
+        let currentCell: Cell;
+        let currentTile: Tile;
+
+        while (isSameColor) {
+            nextCoords.addSelf(direction);
+
+            currentCell = this.getCell(nextCoords);
+
+            if (!currentCell) return;
+
+
+        }
+
+        return count;
     }
 
     protected onEnable(): void {
@@ -150,10 +164,12 @@ export default class FieldController extends cc.Component {
 
     }
 
+
+    // TODO Если swap не произошел - отменяем выделение, не начинаем onMouseMove!
     private onMouseDown(event: cc.Event.EventMouse): void {
         let mousePosition: cc.Vec2 = event.getLocation();
-        let fieldCoords: Coords = this.getCoordsFromAbsolutePosition(mousePosition);
-        let cell: Cell = this.getCell(fieldCoords);
+        let coordsFromPosition: Coords = this.getCoordsFromAbsolutePosition(mousePosition);
+        let cell: Cell = this.getCell(coordsFromPosition);
 
         // При любом клике снимаем выделения тайла
         this.unselectTile();
@@ -163,7 +179,7 @@ export default class FieldController extends cc.Component {
             return;
         }
 
-        let distance: number = this.numberOfCellsApart(this._clickedTile, cell.tile);
+        let distance: number = this.distanceBetweenTiles(this._clickedTile, cell.tile);
 
         // Если между координатами этого и предыдущего нажатий одна клетка, то меняем их местами
         if (distance === 1) {
@@ -186,14 +202,14 @@ export default class FieldController extends cc.Component {
         // Конец нажатия - перестаем слушать движения мыши
         this._canSwipe = false;
 
-        if (!cell || cell.isDisabled || !cell.tile || !this._clickedTile) return;
+        if (!this._clickedTile || !cell || cell.isDisabled || !cell.tile) return;
 
         // Если координаты начала и конца клика совпадают - выделяем тайл
-        if (this.numberOfCellsApart(this._clickedTile, cell.tile) === 0) {
-            this.selectTile(cell.tile);
-        }
+        if (this._clickedTile === cell.tile) this.selectTile(cell.tile);
     }
 
+
+    // TODO избавиться от else if
     private onMouseMove(event: cc.Event.EventMouse): void {
         if (!this._canSwipe || !this._clickedTile) return;
 
@@ -224,8 +240,20 @@ export default class FieldController extends cc.Component {
         this._clickedTile = null;
     }
 
+    private selectTile(tile: Tile): void {
+        this.selectedTile = tile;
+        this.selectedTile.select();
+    }
+
+    private unselectTile(): void {
+        if (this.selectedTile) {
+            this.selectedTile.unselect();
+            this.selectedTile = null;
+        }
+    }
+
     private swapTiles(firstTile: Tile, secondTile: Tile): void {
-        if (!firstTile && !secondTile) return;
+        if (!firstTile || !secondTile || !firstTile.canBeSwapped || !secondTile.canBeSwapped) return;
 
         const coords1: Coords = firstTile.coords;
         const coords2: Coords = secondTile.coords;
@@ -250,7 +278,7 @@ export default class FieldController extends cc.Component {
         return new Coords(Math.floor(column), Math.floor(row));
     }
 
-    private getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
+    private getAbsolutePositionFromCoords(coords: Coords): cc.Vec2 {
         const { cell, field } = this.config.json;
 
         let relativeX: number = cell.width * (coords.col - (field.columns / 2) + 0.5);
@@ -260,14 +288,13 @@ export default class FieldController extends cc.Component {
         return this.node.parent.convertToWorldSpaceAR(relativePos);
     }
 
-    private numberOfCellsApart(tile1: Tile, tile2: Tile): number {
+    private distanceBetweenTiles(tile1: Tile, tile2: Tile): number {
         if (!tile1 || !tile2) return;
 
         let distanceX: number = Math.abs(tile1.coords.col - tile2.coords.col);
         let distanceY: number = Math.abs(tile1.coords.row - tile2.coords.row);
 
-        // Корень суммы квадратов катетов
-        return Math.sqrt(distanceX ** 2 + distanceY ** 2);
+        return Math.hypot(distanceX, distanceY);
     }
 
     private randomColorID(exeptions?: tileColorID[]): tileColorID {
@@ -297,6 +324,22 @@ export default class FieldController extends cc.Component {
         cell.node.setParent(this.cellLayer);
 
         return cell;
+    }
+
+    private everyRow(callback: (row: number) => void): void {
+        const { field } = this.config.json;
+
+        for (let row: number = 0; row < field.rows; row++) {
+            callback(row);
+        }
+    }
+
+    private everyCol(callback: (column: number) => void): void {
+        const { field } = this.config.json;
+
+        for (let column: number = 0; column < field.columns; column++) {
+            callback(column);
+        }
     }
 
     private isEven(n: number): boolean {
