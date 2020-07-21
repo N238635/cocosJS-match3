@@ -8,6 +8,7 @@ const { ccclass, property } = cc._decorator;
 export default class FieldController extends cc.Component {
 
     @property(cc.JsonAsset) config: cc.JsonAsset = null;
+    @property(cc.Node) tileLayer: cc.Node = null;
 
     @property(cc.Prefab) cellPrefab: cc.Prefab = null;
     @property(cc.Prefab) tilePrefab: cc.Prefab = null;
@@ -42,8 +43,9 @@ export default class FieldController extends cc.Component {
 
     public createTile(type: tileType, colorID?: tileColorID): Tile {
         let tileNode: cc.Node = cc.instantiate(this.tilePrefab);
-        let tile: Tile = tileNode.getComponent(Tile);
+        tileNode.setParent(this.tileLayer);
 
+        let tile: Tile = tileNode.getComponent(Tile);
         tile.type = type;
 
         if (colorID || colorID === 0) tile.colorID = colorID;
@@ -66,7 +68,8 @@ export default class FieldController extends cc.Component {
     // Заполняем поле клетками
     public initField(): void {
         const { field, cell: cellParams } = this.config.json;
-        let cell: Cell, cellCoords: Coords, absoluteCellPosition: cc.Vec2;
+        let cell: Cell, cellCoords: Coords;
+        let absoluteCoordsPos: cc.Vec2, relativeCellPos: cc.Vec2;
 
         for (let row: number = 0; row < field.rows; row++) {
             this._field[row] = [];
@@ -81,8 +84,9 @@ export default class FieldController extends cc.Component {
                 cellCoords = new Coords(col, row);
                 cell.coords = cellCoords;
 
-                absoluteCellPosition = this.getAbsolutePositionOfCoords(cellCoords);
-                cell.setAbsolutePosition(absoluteCellPosition);
+                absoluteCoordsPos = this.getAbsolutePositionOfCoords(cellCoords);
+                relativeCellPos = cell.convertToRelativePosition(absoluteCoordsPos);
+                cell.node.setPosition(relativeCellPos);
 
                 this._field[row][col] = cell;
             }
@@ -211,8 +215,8 @@ export default class FieldController extends cc.Component {
         const startPosition: cc.Vec2 = this._clickedTile.getAbsolutePosition();
 
         const moved: cc.Vec2 = mousePosition.sub(startPosition);
-        const movedCol: number = moved.x / (cell.width / 2);
-        const movedRow: number = moved.y / (cell.height / 2);
+        const movedCol: number = moved.x / cell.width;
+        const movedRow: number = moved.y / cell.height;
 
         if (Math.abs(movedCol) < 1 && Math.abs(movedRow) < 1) return;
 
@@ -220,43 +224,41 @@ export default class FieldController extends cc.Component {
 
         let targetCoords: Coords = this._clickedTile.coords.clone();
 
-        if (movedCol >= 1) targetCoords.col++;
-        else if (movedCol <= -1) targetCoords.col--;
-
         if (movedRow >= 1) targetCoords.row--;
         else if (movedRow <= -1) targetCoords.row++;
+        else if (movedCol >= 1) targetCoords.col++;
+        else if (movedCol <= -1) targetCoords.col--;
 
         let targetCell: Cell = this.getCell(targetCoords);
 
-        if (targetCell && targetCell.tile) {
-            this.swapTiles(this._clickedTile, targetCell.tile);
-        }
+        if (!targetCell || !targetCell.tile) return;
 
+        this.swapTiles(this._clickedTile, targetCell.tile);
         this._clickedTile = null;
     }
 
-    private swapTiles(firsTile: Tile, secondTile: Tile): void {
-        if (!firsTile && !secondTile) return;
+    private swapTiles(firstTile: Tile, secondTile: Tile): void {
+        if (!firstTile && !secondTile) return;
 
-        let coords1: Coords = secondTile.coords;
-        let coords2: Coords = firsTile.coords;
-        let distance: number = Coords.distance(coords1, coords2);
+        const coords1: Coords = secondTile.coords;
+        const coords2: Coords = firstTile.coords;
+        const distance: number = Coords.distance(coords1, coords2);
 
-        let cell1: Cell = this.getCell(coords1);
-        let cell2: Cell = this.getCell(coords2);
+        const cell1: Cell = this.getCell(coords1);
+        const cell2: Cell = this.getCell(coords2);
 
-        let cell1AbsolutePos: cc.Vec2 = cell1.node.convertToWorldSpaceAR(cc.v2(0, 0));
-        let cell2AbsolutePos: cc.Vec2 = cell2.node.convertToWorldSpaceAR(cc.v2(0, 0));
+        const cell1AbsolutePos: cc.Vec2 = cell1.getAbsolutePosition();
+        const cell2AbsolutePos: cc.Vec2 = cell2.getAbsolutePosition();
 
-        let tile1NewPos: cc.Vec2 = cell1.node.convertToNodeSpaceAR(cell2AbsolutePos);
-        let tile2NewPos: cc.Vec2 = cell2.node.convertToNodeSpaceAR(cell1AbsolutePos);
+        const tile1NewPos: cc.Vec2 = firstTile.convertToRelativePosition(cell2AbsolutePos);
+        const tile2NewPos: cc.Vec2 = firstTile.convertToRelativePosition(cell1AbsolutePos);
 
-        cc.tween(secondTile.node).to(0.2, { position: tile1NewPos }).call(() => {
-            cell1.tile = firsTile;
+        cc.tween(firstTile.node).to(0.2, { position: tile2NewPos }).call(() => {
+            cell2.tile = secondTile;
         }).start();
 
-        cc.tween(firsTile.node).to(0.2, { position: tile2NewPos }).call(() => {
-            cell2.tile = secondTile;
+        cc.tween(secondTile.node).to(0.2, { position: tile1NewPos }).call(() => {
+            cell1.tile = firstTile;
         }).start();
 
         cc.log(`swap: [${coords1.col}, ${coords1.row}], [${coords2.col}, ${coords2.row}] : ${distance}`);
@@ -299,7 +301,7 @@ export default class FieldController extends cc.Component {
     private createCell(): Cell {
         let cellNode: cc.Node = cc.instantiate(this.cellPrefab);
         let cell: Cell = cellNode.getComponent(Cell);
-        cell.setParent(this.node);
+        cell.node.setParent(this.node);
 
         return cell;
     }
