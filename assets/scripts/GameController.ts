@@ -1,7 +1,4 @@
 import FieldController from "./FieldController";
-import Cell from "./Cell";
-import Coords from "./Coords";
-import Tile, { tileColorID, tileType } from "./Tile";
 
 const { ccclass, property } = cc._decorator;
 
