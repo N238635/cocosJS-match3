@@ -18,24 +18,26 @@ export default class Cell extends cc.Component {
 
     set tile(tile: Tile) {
         this._tile = tile;
-        this._tile.node.setParent(this.node);
         this._tile.coords = this.coords;
+
+        let cellAbsolutePos: cc.Vec2 = this.getAbsolutePosition();
+        let tileRelativePos: cc.Vec2 = this._tile.convertToRelativePosition(cellAbsolutePos);
+        this._tile.node.setPosition(tileRelativePos);
     }
 
     private _tile: Tile;
-
-    public setParent(parent: cc.Node): void {
-        this.node.parent = parent;
-    }
 
     public removeTile(): void {
         this._tile.node.destroy();
         this._tile = null;
     }
 
-    public setAbsolutePosition(absolutePosition: cc.Vec2): void {
-        let pos: cc.Vec2 = this.node.parent.convertToNodeSpaceAR(absolutePosition);
-        this.node.setPosition(pos);
+    public convertToRelativePosition(absolutePosition: cc.Vec2): cc.Vec2 {
+        return this.node.parent.convertToNodeSpaceAR(absolutePosition);
+    }
+
+    public getAbsolutePosition(): cc.Vec2 {
+        return this.node.convertToWorldSpaceAR(cc.v2());
     }
 
     protected start(): void {
