@@ -36,7 +36,10 @@ export default class Cell extends cc.Component {
         const absolutePos: cc.Vec2 = this.getAbsolutePosition();
         const tilePos: cc.Vec2 = tile.convertToRelativePosition(absolutePos);
 
+        tile.canBeSwapped = false;
+
         cc.tween(tile.node).to(0.2, { position: tilePos }).call(() => {
+            tile.canBeSwapped = true;
             this.tile = tile;
         }).start();
     }

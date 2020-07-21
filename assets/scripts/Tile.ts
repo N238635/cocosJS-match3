@@ -36,6 +36,7 @@ export default class Tile extends cc.Component {
     public coords: Coords = new Coords();
     public type: tileType = tileType.Color;
     public colorID: tileColorID;
+    public canBeSwapped: boolean = true;
 
     public select(): void {
         cc.tween(this.node).to(0.1, { scale: 1.2 }).start();
