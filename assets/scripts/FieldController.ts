@@ -137,27 +137,6 @@ export default class FieldController extends cc.Component {
         });
     }
 
-    public getCoordsFromAbsolutePosition(absolutePosition: cc.Vec2): Coords {
-        const { cell, field } = this.config.json;
-
-        let relativePos: cc.Vec2 = this.node.parent.convertToNodeSpaceAR(absolutePosition);
-
-        let column: number = relativePos.x / cell.width + field.columns / 2;
-        let row: number = field.rows / 2 - relativePos.y / cell.height;
-
-        return new Coords(Math.floor(column), Math.floor(row));
-    }
-
-    public getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
-        const { cell, field } = this.config.json;
-
-        let relativeX: number = cell.width * (coords.col - (field.columns / 2) + 0.5);
-        let relativeY: number = cell.height * ((field.rows / 2) - coords.row - 0.5);
-        let relativePos: cc.Vec2 = cc.v2(relativeX, relativeY);
-
-        return this.node.parent.convertToWorldSpaceAR(relativePos);
-    }
-
     protected onEnable(): void {
         this.node.on(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
         this.node.on(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
@@ -179,7 +158,10 @@ export default class FieldController extends cc.Component {
         // При любом клике снимаем выделения тайла
         this.unselectTile();
 
-        if (!cell || cell.isDisabled || !cell.tile) return;
+        if (!cell || cell.isDisabled || !cell.tile) {
+            this._clickedTile = null;
+            return;
+        }
 
         let distance: number = this.numberOfCellsApart(this._clickedTile, cell.tile);
 
@@ -255,6 +237,27 @@ export default class FieldController extends cc.Component {
         cell1.attractTile(secondTile);
 
         cc.log(`swap: [${coords1.col}, ${coords1.row}], [${coords2.col}, ${coords2.row}]`);
+    }
+
+    private getCoordsFromAbsolutePosition(absolutePosition: cc.Vec2): Coords {
+        const { cell, field } = this.config.json;
+
+        let relativePos: cc.Vec2 = this.node.parent.convertToNodeSpaceAR(absolutePosition);
+
+        let column: number = relativePos.x / cell.width + field.columns / 2;
+        let row: number = field.rows / 2 - relativePos.y / cell.height;
+
+        return new Coords(Math.floor(column), Math.floor(row));
+    }
+
+    private getAbsolutePositionOfCoords(coords: Coords): cc.Vec2 {
+        const { cell, field } = this.config.json;
+
+        let relativeX: number = cell.width * (coords.col - (field.columns / 2) + 0.5);
+        let relativeY: number = cell.height * ((field.rows / 2) - coords.row - 0.5);
+        let relativePos: cc.Vec2 = cc.v2(relativeX, relativeY);
+
+        return this.node.parent.convertToWorldSpaceAR(relativePos);
     }
 
     private numberOfCellsApart(tile1: Tile, tile2: Tile): number {
