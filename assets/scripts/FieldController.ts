@@ -29,13 +29,13 @@ export default class FieldController extends cc.Component {
             }
         }
 
-        let fromEnd = (callback: (col: number) => void): void => {
+        let fromEnd = (callback: (row: number) => void): void => {
             for (let row: number = field.rows - 1; row >= 0; row--) {
                 callback(row);
             }
         }
 
-        let everyRow: (callback: (col: number) => void) => void = fromLastRow ? fromEnd : fromStart;
+        let everyRow: Function = fromLastRow ? fromEnd : fromStart;
 
         everyRow((row: number) => {
             for (let col: number = 0; col < field.columns; col++) {
@@ -67,9 +67,7 @@ export default class FieldController extends cc.Component {
         let cell: Cell;
 
         this.everyCoords((coords: Coords) => {
-            cell = this.createCell();
-
-            cell.coords = coords;
+            cell = this.createCell(coords);
 
             positionFromCoords = this.getAbsolutePositionFromCoords(coords);
             cellPosition = cell.convertToRelativePosition(positionFromCoords);
@@ -80,49 +78,48 @@ export default class FieldController extends cc.Component {
             cell.isDisabled = field.layout[coords.row][coords.col] === 0;
             cell.isDark = this.isEven(coords.row) === this.isEven(coords.col);
 
-            if (!this._field[coords.row]) this._field[coords.row] = [];
-
+            this._field[coords.row] = this._field[coords.row] || [];
             this._field[coords.row][coords.col] = cell;
         });
     }
 
     public generateRandomTiles(): void {
         this.everyCell((cell: Cell) => {
-            if (!cell.isDisabled) {
-                const cellCoords: Coords = cell.coords;
-                let exeptions: tileColorID[] = [];
+            if (cell.isDisabled) return;
 
-                const checkDirections = [
-                    { col: -1, row: 0 },
-                    { col: 0, row: -1 }
-                ];
+            const cellCoords: Coords = cell.coords;
+            let exeptions: tileColorID[] = [];
 
-                let currentCell: Cell;
+            const checkDirections = [
+                { col: -1, row: 0 },
+                { col: 0, row: -1 }
+            ];
 
-                checkDirections.forEach((direction) => {
-                    currentCell = this.getCell(cellCoords.col + direction.col, cellCoords.row + direction.row);
+            let currentCell: Cell;
 
-                    if (currentCell && currentCell.tile) exeptions.push(currentCell.tile.colorID);
-                });
+            checkDirections.forEach((direction) => {
+                currentCell = this.getCell(cellCoords.col + direction.col, cellCoords.row + direction.row);
 
-                let randomColorID: tileColorID = this.randomColorID(exeptions);
+                if (currentCell && currentCell.tile) exeptions.push(currentCell.tile.colorID);
+            });
 
-                let tile: Tile = cell.createTile(tileType.Color, randomColorID)
+            let randomColorID: tileColorID = this.randomColorID(exeptions);
 
-                tile.node.setParent(this.tileLayer);
-                cell.tile = tile;
-            }
+            let tile: Tile = cell.createTile(tileType.Color, randomColorID)
+
+            tile.node.setParent(this.tileLayer);
+            cell.tile = tile;
         });
     }
 
-    // TODO доделать
+    // TODO сделать падение тайлов / добавление бонусов
     public checkField() {
         const directions = [
             new Coords(1, 0),
             new Coords(0, 1)
         ];
 
-        let fromLastRow = true;
+        let isFromLastRow = true;
         let combinations: Cell[][] = [];
         let combination: Cell[];
 
@@ -132,15 +129,27 @@ export default class FieldController extends cc.Component {
 
                 if (combination.length > 2) combinations.push(combination);
             });
-        }, fromLastRow);
 
-        combinations.forEach(() => {
-            // TODO
+            if (!currentCell.tile) {
+                let fallingTile = this.getFallingTile(currentCell.coords);
+                cc.log(fallingTile.coords);
+            } 
+        }, isFromLastRow);
+
+        combinations.forEach((combination: Cell[]) => {
+            cc.log(combination);
+            combination.forEach((cell: Cell) => {
+                cell.removeTile();
+            });
         });
     }
 
+    public getFallingTile(fallTo: Coords): Tile {
+        return;
+    }
+
     public checkCombination(targetCell: Cell, direction: Coords): Cell[] {
-        if (!targetCell.tile) return;
+        if (!targetCell.tile) return [];
 
         const targetColorID: number = targetCell.tile.colorID;
 
@@ -148,16 +157,16 @@ export default class FieldController extends cc.Component {
         let combination: Cell[] = [];
         let currentCell: Cell = targetCell;
 
-        let isSameColor: boolean = true;
-
-        while (isSameColor) {
+        let checkNextTile = () => {
             combination.push(currentCell);
 
             nextCoords.addSelf(direction);
             currentCell = this.getCell(nextCoords);
 
-            isSameColor = currentCell && currentCell.tile && currentCell.tile.colorID === targetColorID;
-        }
+            if (currentCell && currentCell.tile && currentCell.tile.colorID === targetColorID) checkNextTile();
+        };
+
+        checkNextTile();
 
         return combination;
     }
@@ -173,6 +182,10 @@ export default class FieldController extends cc.Component {
         this.node.off(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
         this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onMouseMove, this);
 
+    }
+
+    protected update(): void {
+        this.checkField();
     }
 
     // TODO Если swap не произошел - отменяем выделение, не начинаем onMouseMove!
@@ -332,10 +345,11 @@ export default class FieldController extends cc.Component {
         return colorID;
     }
 
-    private createCell(): Cell {
+    private createCell(coords: Coords): Cell {
         let cellNode: cc.Node = cc.instantiate(this.cellPrefab);
         let cell: Cell = cellNode.getComponent(Cell);
         cell.node.setParent(this.cellLayer);
+        cell.coords = coords;
 
         return cell;
     }
