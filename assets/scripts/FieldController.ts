@@ -20,12 +20,34 @@ export default class FieldController extends cc.Component {
     private _canSwipe: boolean = false;
     private _field: Cell[][] = [];
 
-    public everyCell(callback: (cell: Cell) => void): void {
-        this.everyRow((row: number) => {
-            this.everyCol((column: number) => {
-                callback(this.getCell(column, row));
-            });
+    public everyCoords(everyCoordsCallback: (coords: Coords) => void, fromLastRow: boolean = false): void {
+        const { field } = this.config.json;
+
+        let fromStart = (callback: (row: number) => void): void => {
+            for (let row: number = 0; row < field.rows; row++) {
+                callback(row);
+            }
+        }
+
+        let fromEnd = (callback: (col: number) => void): void => {
+            for (let row: number = field.rows - 1; row >= 0; row--) {
+                callback(row);
+            }
+        }
+
+        let everyRow: (callback: (col: number) => void) => void = fromLastRow ? fromEnd : fromStart;
+
+        everyRow((row: number) => {
+            for (let col: number = 0; col < field.columns; col++) {
+                everyCoordsCallback(new Coords(col, row));
+            }
         });
+    }
+
+    public everyCell(callback: (cell: Cell) => void, fromLastRow: boolean = false): void {
+        this.everyCoords((coords: Coords) => {
+            callback(this.getCell(coords));
+        }, fromLastRow);
     }
 
     public getCell(coords: Coords | number, row?: number): Cell {
@@ -41,29 +63,26 @@ export default class FieldController extends cc.Component {
 
     public initField(): void {
         const { field, cell: cellParams } = this.config.json;
-        let cell: Cell, cellCoords: Coords;
         let positionFromCoords: cc.Vec2, cellPosition: cc.Vec2;
+        let cell: Cell;
 
-        this.everyRow((row: number) => {
-            this._field[row] = [];
+        this.everyCoords((coords: Coords) => {
+            cell = this.createCell();
 
-            this.everyCol((col: number) => {
-                cell = this.createCell();
+            cell.coords = coords;
 
-                cellCoords = new Coords(col, row);
-                cell.coords = cellCoords;
+            positionFromCoords = this.getAbsolutePositionFromCoords(coords);
+            cellPosition = cell.convertToRelativePosition(positionFromCoords);
 
-                positionFromCoords = this.getAbsolutePositionFromCoords(cellCoords);
-                cellPosition = cell.convertToRelativePosition(positionFromCoords);
+            cell.node.setPosition(cellPosition);
+            cell.node.setContentSize(cellParams.width, cellParams.height);
 
-                cell.node.setPosition(cellPosition);
-                cell.node.setContentSize(cellParams.width, cellParams.height);
+            cell.isDisabled = field.layout[coords.row][coords.col] === 0;
+            cell.isDark = this.isEven(coords.row) === this.isEven(coords.col);
 
-                cell.isDisabled = field.layout[row][col] === 0;
-                cell.isDark = this.isEven(row) === this.isEven(col);
+            if (!this._field[coords.row]) this._field[coords.row] = [];
 
-                this._field[row][col] = cell;
-            });
+            this._field[coords.row][coords.col] = cell;
         });
     }
 
@@ -97,46 +116,50 @@ export default class FieldController extends cc.Component {
     }
 
     // TODO доделать
-    public checkCombinations() {
+    public checkField() {
         const directions = [
             new Coords(1, 0),
             new Coords(0, 1)
         ];
 
-        let numberOfSameCells: number;
+        let fromLastRow = true;
+        let combinations: Cell[][] = [];
+        let combination: Cell[];
 
         this.everyCell((currentCell: Cell) => {
             directions.forEach((direction: Coords) => {
-                numberOfSameCells = this.countSameColor(currentCell, direction);
+                combination = this.checkCombination(currentCell, direction);
 
-                if (!numberOfSameCells) return;
-
-                cc.log(numberOfSameCells);
+                if (combination.length > 2) combinations.push(combination);
             });
+        }, fromLastRow);
+
+        combinations.forEach(() => {
+            // TODO
         });
     }
 
-    public countSameColor(targetCell: Cell, direction: Coords): number {
+    public checkCombination(targetCell: Cell, direction: Coords): Cell[] {
         if (!targetCell.tile) return;
 
-        let count: number = 0;
-        let isSameColor: boolean = true;
-        let nextCoords: Coords = targetCell.coords;
+        const targetColorID: number = targetCell.tile.colorID;
 
-        let currentCell: Cell;
-        let currentTile: Tile;
+        let nextCoords: Coords = targetCell.coords.clone();
+        let combination: Cell[] = [];
+        let currentCell: Cell = targetCell;
+
+        let isSameColor: boolean = true;
 
         while (isSameColor) {
-            nextCoords.addSelf(direction);
+            combination.push(currentCell);
 
+            nextCoords.addSelf(direction);
             currentCell = this.getCell(nextCoords);
 
-            if (!currentCell) return;
-
-
+            isSameColor = currentCell && currentCell.tile && currentCell.tile.colorID === targetColorID;
         }
 
-        return count;
+        return combination;
     }
 
     protected onEnable(): void {
@@ -215,7 +238,7 @@ export default class FieldController extends cc.Component {
             else targetCoords.col--;
 
         } else if (Math.abs(movedRow) > 1) {
-            
+
             if (movedRow > 0) targetCoords.row--;
             else targetCoords.row++;
 
@@ -315,22 +338,6 @@ export default class FieldController extends cc.Component {
         cell.node.setParent(this.cellLayer);
 
         return cell;
-    }
-
-    private everyRow(callback: (row: number) => void): void {
-        const { field } = this.config.json;
-
-        for (let row: number = 0; row < field.rows; row++) {
-            callback(row);
-        }
-    }
-
-    private everyCol(callback: (column: number) => void): void {
-        const { field } = this.config.json;
-
-        for (let column: number = 0; column < field.columns; column++) {
-            callback(column);
-        }
     }
 
     private isEven(n: number): boolean {
