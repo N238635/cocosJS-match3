@@ -16,7 +16,7 @@ export default class FieldController extends cc.Component {
 
     public selectedTile: Tile;
 
-    private _clickedTile: Tile;
+    private _clickedCell: Cell;
     private _canSwipe: boolean = false;
     private _field: Cell[][] = [];
 
@@ -105,9 +105,10 @@ export default class FieldController extends cc.Component {
 
             let randomColorID: tileColorID = this.randomColorID(exeptions);
 
-            let tile: Tile = cell.createTile(tileType.Color, randomColorID)
+            let tile: Tile = cell.createTile(cell.coords, tileType.Color, randomColorID)
 
             tile.node.setParent(this.tileLayer);
+
             cell.tile = tile;
         });
     }
@@ -124,16 +125,22 @@ export default class FieldController extends cc.Component {
         let combination: Cell[];
 
         this.everyCell((currentCell: Cell) => {
+            if (currentCell.isBusy) return;
+
             directions.forEach((direction: Coords) => {
                 combination = this.checkCombination(currentCell, direction);
 
                 if (combination.length > 2) combinations.push(combination);
             });
 
-            if (!currentCell.tile) {
-                let fallingTile = this.getFallingTile(currentCell.coords);
-                cc.log(fallingTile.coords);
-            } 
+            if (currentCell.tile || currentCell.isDisabled || currentCell.isBusy) return;
+
+            let fallingTile: Tile = this.getFallingTile(currentCell.coords);
+
+            if (!fallingTile) return;
+
+            cc.log(fallingTile.coords);
+            currentCell.attractTile(fallingTile);
         }, isFromLastRow);
 
         combinations.forEach((combination: Cell[]) => {
@@ -144,8 +151,37 @@ export default class FieldController extends cc.Component {
         });
     }
 
+
+    // TODO создание новых тайлов
     public getFallingTile(fallTo: Coords): Tile {
-        return;
+        let currentRow: number = fallTo.row;
+
+        let currentCoords: Coords;
+        let currentCell: Cell;
+
+        let findTile: Function = (): Tile => {
+            currentCoords = new Coords(fallTo.col, currentRow--);
+            currentCell = this.getCell(currentCoords);
+
+            if (!currentCell || currentCell.isDisabled) {
+                return;
+
+                let cell: Cell = this.getCell(fallTo);
+
+                let randomColorID: tileColorID = this.randomColorID();
+                let newTile: Tile = cell.createTile(currentCoords, tileType.Color, randomColorID);
+
+                newTile.node.setParent(this.tileLayer);
+
+                return newTile;
+            }
+
+            if (!currentCell.tile) return findTile();
+
+            return currentCell.tile;
+        };
+
+        return findTile();
     }
 
     public checkCombination(targetCell: Cell, direction: Coords): Cell[] {
@@ -157,18 +193,25 @@ export default class FieldController extends cc.Component {
         let combination: Cell[] = [];
         let currentCell: Cell = targetCell;
 
-        let checkNextTile = () => {
+        let checkNextTile: Function = () => {
             combination.push(currentCell);
 
             nextCoords.addSelf(direction);
             currentCell = this.getCell(nextCoords);
 
-            if (currentCell && currentCell.tile && currentCell.tile.colorID === targetColorID) checkNextTile();
+            if (
+                !currentCell || 
+                !currentCell.tile || 
+                currentCell.tile.colorID !== targetColorID || 
+                currentCell.isBusy
+            ) { 
+                return combination;
+            }
+
+            return checkNextTile();
         };
 
-        checkNextTile();
-
-        return combination;
+        return checkNextTile();
     }
 
     protected onEnable(): void {
@@ -198,15 +241,15 @@ export default class FieldController extends cc.Component {
         this.unselectTile();
 
         if (!cell || cell.isDisabled || !cell.tile) {
-            this._clickedTile = null;
+            this._clickedCell = null;
             return;
         }
 
-        let distance: number = this.distanceBetweenTiles(this._clickedTile, cell.tile);
+        let distance: number = this.distanceBetweenCells(this._clickedCell, cell);
 
         // Если между координатами этого и предыдущего нажатий одна клетка, то меняем их местами
         if (distance === 1) {
-            this.swapTiles(this._clickedTile, cell.tile);
+            this._clickedCell.swapTiles(cell);
         } else {
             // Если не меняем местами - начинаем слушать движение мыши
             this._canSwipe = true;
@@ -214,7 +257,7 @@ export default class FieldController extends cc.Component {
 
         // Если меняем местами, либо повторный клик (по одному тайлу),
         // то не считаем за начало нажатия (и не выделяем)
-        this._clickedTile = distance === 1 || distance === 0 ? null : cell.tile;
+        this._clickedCell = distance === 1 || distance === 0 ? null : cell;
     }
 
     private onMouseUp(event: cc.Event.EventMouse): void {
@@ -225,25 +268,25 @@ export default class FieldController extends cc.Component {
         // Конец нажатия - перестаем слушать движения мыши
         this._canSwipe = false;
 
-        if (!this._clickedTile || !cell || cell.isDisabled || !cell.tile) return;
+        if (!this._clickedCell || !cell || cell.isDisabled || !cell.tile) return;
 
         // Если координаты начала и конца клика совпадают - выделяем тайл
-        if (this._clickedTile === cell.tile) this.selectTile(cell.tile);
+        if (this._clickedCell === cell) this.selectTile(cell.tile);
     }
 
     // TODO избавиться от else if
     private onMouseMove(event: cc.Event.EventMouse): void {
-        if (!this._canSwipe || !this._clickedTile) return;
+        if (!this._canSwipe || !this._clickedCell) return;
 
         const { cell } = this.config.json
         const mousePosition: cc.Vec2 = event.getLocation();
-        const startPosition: cc.Vec2 = this._clickedTile.getAbsolutePosition();
+        const startPosition: cc.Vec2 = this._clickedCell.getAbsolutePosition();
 
         const moved: cc.Vec2 = mousePosition.sub(startPosition);
         const movedCol: number = moved.x / cell.width;
         const movedRow: number = moved.y / cell.height;
 
-        let targetCoords: Coords = this._clickedTile.coords.clone();
+        let targetCoords: Coords = this._clickedCell.coords.clone();
 
         if (Math.abs(movedCol) > 1) {
 
@@ -263,8 +306,8 @@ export default class FieldController extends cc.Component {
 
         if (!targetCell || !targetCell.tile) return;
 
-        this.swapTiles(this._clickedTile, targetCell.tile);
-        this._clickedTile = null;
+        targetCell.swapTiles(this._clickedCell);
+        this._clickedCell = null;
     }
 
     private selectTile(tile: Tile): void {
@@ -277,21 +320,6 @@ export default class FieldController extends cc.Component {
             this.selectedTile.unselect();
             this.selectedTile = null;
         }
-    }
-
-    private swapTiles(firstTile: Tile, secondTile: Tile): void {
-        if (!firstTile || !secondTile || !firstTile.canBeSwapped || !secondTile.canBeSwapped) return;
-
-        const coords1: Coords = firstTile.coords;
-        const coords2: Coords = secondTile.coords;
-
-        const cell1: Cell = this.getCell(coords1);
-        const cell2: Cell = this.getCell(coords2);
-
-        cell2.attractTile(firstTile);
-        cell1.attractTile(secondTile);
-
-        cc.log(`swap: [${coords1.col}, ${coords1.row}], [${coords2.col}, ${coords2.row}]`);
     }
 
     private getCoordsFromAbsolutePosition(absolutePosition: cc.Vec2): Coords {
@@ -315,11 +343,11 @@ export default class FieldController extends cc.Component {
         return this.node.parent.convertToWorldSpaceAR(relativePos);
     }
 
-    private distanceBetweenTiles(tile1: Tile, tile2: Tile): number {
-        if (!tile1 || !tile2) return;
+    private distanceBetweenCells(cell1: Cell, cell2: Cell): number {
+        if (!cell1 || !cell2) return;
 
-        let distanceX: number = Math.abs(tile1.coords.col - tile2.coords.col);
-        let distanceY: number = Math.abs(tile1.coords.row - tile2.coords.row);
+        let distanceX: number = Math.abs(cell1.coords.col - cell2.coords.col);
+        let distanceY: number = Math.abs(cell1.coords.row - cell2.coords.row);
 
         return Math.hypot(distanceX, distanceY);
     }

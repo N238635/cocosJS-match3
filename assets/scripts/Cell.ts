@@ -12,15 +12,16 @@ export default class Cell extends cc.Component {
 
     @property(cc.Prefab) tilePrefab: cc.Prefab = null;
 
+    public isBusy: boolean = false;
     public isDisabled: boolean = true;
     public isDark: boolean = true;
+
     public coords: Coords;
 
     get tile(): Tile { return this._tile }
 
     set tile(tile: Tile) {
         this._tile = tile;
-        this._tile.coords = this.coords;
 
         const cellAbsolutePos: cc.Vec2 = this.getAbsolutePosition();
         const tileRelativePos: cc.Vec2 = this._tile.convertToRelativePosition(cellAbsolutePos);
@@ -29,11 +30,12 @@ export default class Cell extends cc.Component {
 
     private _tile: Tile;
 
-    public createTile(type: tileType, colorID?: tileColorID): Tile {
+    public createTile(coords: Coords, type: tileType, colorID?: tileColorID): Tile {
         let tileNode: cc.Node = cc.instantiate(this.tilePrefab);
-
         let tile: Tile = tileNode.getComponent(Tile);
+
         tile.type = type;
+        tile.coords = coords;
 
         if (colorID || colorID === 0) tile.colorID = colorID;
 
@@ -43,12 +45,14 @@ export default class Cell extends cc.Component {
     public removeTile(): void {
         if (!this._tile) return;
 
-        let tileNode: cc.Node = this._tile.node;
-        
+        let tileNode = this._tile.node;
         this._tile = null;
+
+        this.isBusy = true;
 
         cc.tween(tileNode).to(0.2, { scale: 0 }).call(() => {
             tileNode.destroy();
+            this.isBusy = false;
         }).start();
     }
 
@@ -58,12 +62,22 @@ export default class Cell extends cc.Component {
         const absolutePos: cc.Vec2 = this.getAbsolutePosition();
         const tilePos: cc.Vec2 = tile.convertToRelativePosition(absolutePos);
 
-        tile.canBeSwapped = false;
+        this.isBusy = true;
 
         cc.tween(tile.node).to(0.2, { position: tilePos }).call(() => {
-            tile.canBeSwapped = true;
             this.tile = tile;
+            this.isBusy = false;
         }).start();
+    }
+
+    public swapTiles(targetCell: Cell): void {
+        if (!targetCell || !this.tile || !targetCell.tile || this.isBusy || targetCell.isBusy) return;
+
+        let targetTile = targetCell.tile;
+        targetCell.attractTile(this.tile);
+        this.attractTile(targetTile);
+
+        cc.log(`swap: [${this.coords.col}, ${this.coords.row}], [${targetCell.coords.col}, ${targetCell.coords.row}]`);
     }
 
     public convertToRelativePosition(absolutePosition: cc.Vec2): cc.Vec2 {
