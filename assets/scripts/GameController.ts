@@ -11,7 +11,5 @@ export default class GameController extends cc.Component {
         this.field.initField();
 
         this.field.generateRandomTiles();
-
-        // this.field.checkCombinations();
     }
 }
