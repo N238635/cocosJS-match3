@@ -9,11 +9,10 @@ export default class FieldController extends cc.Component {
 
     @property(cc.JsonAsset) config: cc.JsonAsset = null;
 
-    @property(cc.Node) cellLayer: cc.Node = null;
     @property(cc.Node) tileLayer: cc.Node = null;
+    @property(cc.Node) cellLayer: cc.Node = null;
 
     @property(cc.Prefab) cellPrefab: cc.Prefab = null;
-    @property(cc.Prefab) tilePrefab: cc.Prefab = null;
 
     public selectedTile: Tile;
 
@@ -38,19 +37,6 @@ export default class FieldController extends cc.Component {
         if (!this._field[realCoords.row]) return;
 
         return this._field[realCoords.row][realCoords.col];
-    }
-
-    // TODO переместить в Cell.ts
-    public createTile(type: tileType, colorID?: tileColorID): Tile {
-        let tileNode: cc.Node = cc.instantiate(this.tilePrefab);
-        tileNode.setParent(this.tileLayer);
-
-        let tile: Tile = tileNode.getComponent(Tile);
-        tile.type = type;
-
-        if (colorID || colorID === 0) tile.colorID = colorID;
-
-        return tile;
     }
 
     public initField(): void {
@@ -81,28 +67,30 @@ export default class FieldController extends cc.Component {
         });
     }
 
-    // TODO Убрать повторение кода
     public generateRandomTiles(): void {
         this.everyCell((cell: Cell) => {
             if (!cell.isDisabled) {
-                let cellCoords: Coords = cell.coords;
+                const cellCoords: Coords = cell.coords;
                 let exeptions: tileColorID[] = [];
 
-                let leftCell: Cell = this.getCell(cellCoords.col - 1, cellCoords.row);
+                const checkDirections = [
+                    { col: -1, row: 0 },
+                    { col: 0, row: -1 }
+                ];
 
-                if (leftCell && leftCell.tile) {
-                    exeptions.push(leftCell.tile.colorID);
-                }
+                let currentCell: Cell;
 
-                let topCell: Cell = this.getCell(cellCoords.col, cellCoords.row - 1);
+                checkDirections.forEach((direction) => {
+                    currentCell = this.getCell(cellCoords.col + direction.col, cellCoords.row + direction.row);
 
-                if (topCell && topCell.tile) {
-                    exeptions.push(topCell.tile.colorID);
-                }
+                    if (currentCell && currentCell.tile) exeptions.push(currentCell.tile.colorID);
+                });
 
                 let randomColorID: tileColorID = this.randomColorID(exeptions);
-                let tile: Tile = this.createTile(tileType.Color, randomColorID);
 
+                let tile: Tile = cell.createTile(tileType.Color, randomColorID)
+
+                tile.node.setParent(this.tileLayer);
                 cell.tile = tile;
             }
         });
@@ -111,8 +99,8 @@ export default class FieldController extends cc.Component {
     // TODO доделать
     public checkCombinations() {
         const directions = [
-            new Coords(-1, 0),
-            new Coords(0, -1),
+            new Coords(1, 0),
+            new Coords(0, 1)
         ];
 
         let numberOfSameCells: number;
@@ -164,7 +152,6 @@ export default class FieldController extends cc.Component {
 
     }
 
-
     // TODO Если swap не произошел - отменяем выделение, не начинаем onMouseMove!
     private onMouseDown(event: cc.Event.EventMouse): void {
         let mousePosition: cc.Vec2 = event.getLocation();
@@ -208,7 +195,6 @@ export default class FieldController extends cc.Component {
         if (this._clickedTile === cell.tile) this.selectTile(cell.tile);
     }
 
-
     // TODO избавиться от else if
     private onMouseMove(event: cc.Event.EventMouse): void {
         if (!this._canSwipe || !this._clickedTile) return;
@@ -221,16 +207,21 @@ export default class FieldController extends cc.Component {
         const movedCol: number = moved.x / cell.width;
         const movedRow: number = moved.y / cell.height;
 
-        if (Math.abs(movedCol) < 1 && Math.abs(movedRow) < 1) return;
-
-        this._canSwipe = false;
-
         let targetCoords: Coords = this._clickedTile.coords.clone();
 
-        if (movedRow >= 1) targetCoords.row--;
-        else if (movedRow <= -1) targetCoords.row++;
-        else if (movedCol >= 1) targetCoords.col++;
-        else if (movedCol <= -1) targetCoords.col--;
+        if (Math.abs(movedCol) > 1) {
+
+            if (movedCol > 0) targetCoords.col++;
+            else targetCoords.col--;
+
+        } else if (Math.abs(movedRow) > 1) {
+            
+            if (movedRow > 0) targetCoords.row--;
+            else targetCoords.row++;
+
+        } else { return }
+
+        this._canSwipe = false;
 
         let targetCell: Cell = this.getCell(targetCoords);
 
