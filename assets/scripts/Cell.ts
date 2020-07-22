@@ -41,11 +41,20 @@ export default class Cell extends cc.Component {
     }
 
     public removeTile(): void {
-        this._tile.node.destroy();
+        if (!this._tile) return;
+
+        let tileNode: cc.Node = this._tile.node;
+        
         this._tile = null;
+
+        cc.tween(tileNode).to(0.2, { scale: 0 }).call(() => {
+            tileNode.destroy();
+        }).start();
     }
 
     public attractTile(tile: Tile): void {
+        this._tile = null;
+
         const absolutePos: cc.Vec2 = this.getAbsolutePosition();
         const tilePos: cc.Vec2 = tile.convertToRelativePosition(absolutePos);
 
