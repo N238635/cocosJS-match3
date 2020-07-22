@@ -1,5 +1,5 @@
 import Coords from "./Coords";
-import Tile from "./Tile";
+import Tile, { tileType, tileColorID } from "./Tile";
 
 const { ccclass, property } = cc._decorator;
 
@@ -9,6 +9,8 @@ export default class Cell extends cc.Component {
     @property(cc.SpriteFrame) whiteSpriteFrame: cc.SpriteFrame = null;
     @property(cc.SpriteFrame) greySpriteFrame: cc.SpriteFrame = null;
     @property(cc.Sprite) background: cc.Sprite = null;
+
+    @property(cc.Prefab) tilePrefab: cc.Prefab = null;
 
     public isDisabled: boolean = true;
     public isDark: boolean = true;
@@ -26,6 +28,17 @@ export default class Cell extends cc.Component {
     }
 
     private _tile: Tile;
+
+    public createTile(type: tileType, colorID?: tileColorID): Tile {
+        let tileNode: cc.Node = cc.instantiate(this.tilePrefab);
+
+        let tile: Tile = tileNode.getComponent(Tile);
+        tile.type = type;
+
+        if (colorID || colorID === 0) tile.colorID = colorID;
+
+        return tile;
+    }
 
     public removeTile(): void {
         this._tile.node.destroy();
