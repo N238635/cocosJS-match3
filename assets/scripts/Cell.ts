@@ -17,18 +17,7 @@ export default class Cell extends cc.Component {
     public isDark: boolean = true;
 
     public coords: Coords;
-
-    get tile(): Tile { return this._tile }
-
-    set tile(tile: Tile) {
-        this._tile = tile;
-
-        const cellAbsolutePos: cc.Vec2 = this.getAbsolutePosition();
-        const tileRelativePos: cc.Vec2 = this._tile.convertToRelativePosition(cellAbsolutePos);
-        this._tile.node.setPosition(tileRelativePos);
-    }
-
-    private _tile: Tile;
+    public tile: Tile;
 
     public createTile(coords: Coords, type: tileType, colorID?: tileColorID): Tile {
         let tileNode: cc.Node = cc.instantiate(this.tilePrefab);
@@ -43,12 +32,15 @@ export default class Cell extends cc.Component {
     }
 
     public removeTile(): void {
-        if (!this._tile) return;
+        if (!this.tile || this.isBusy) return;
 
-        let tileNode = this._tile.node;
-        this._tile = null;
+        cc.log(`Removed: [${this.tile.coords.col}, ${this.tile.coords.row}] : ${this.tile.colorID}`);
+        if (this.isBusy) cc.log('BUSY!!!!');
 
         this.isBusy = true;
+
+        let tileNode = this.tile.node;
+        this.tile = null;
 
         cc.tween(tileNode).to(0.2, { scale: 0 }).call(() => {
             tileNode.destroy();
@@ -57,16 +49,17 @@ export default class Cell extends cc.Component {
     }
 
     public attractTile(tile: Tile): void {
-        this._tile = null;
+        // this.isBusy = true;
+
+        this.tile = tile;
+
+        this.tile.coords = this.coords;
 
         const absolutePos: cc.Vec2 = this.getAbsolutePosition();
-        const tilePos: cc.Vec2 = tile.convertToRelativePosition(absolutePos);
+        const tilePos: cc.Vec2 = this.tile.convertToRelativePosition(absolutePos);
 
-        this.isBusy = true;
-
-        cc.tween(tile.node).to(0.2, { position: tilePos }).call(() => {
-            this.tile = tile;
-            this.isBusy = false;
+        cc.tween(this.tile.node).to(0.2, { position: tilePos }).call(() => {
+            // this.isBusy = false;
         }).start();
     }
 

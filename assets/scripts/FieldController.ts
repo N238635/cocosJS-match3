@@ -15,6 +15,7 @@ export default class FieldController extends cc.Component {
     @property(cc.Prefab) cellPrefab: cc.Prefab = null;
 
     public selectedTile: Tile;
+    public isChecking: boolean = false;
 
     private _clickedCell: Cell;
     private _canSwipe: boolean = false;
@@ -109,6 +110,10 @@ export default class FieldController extends cc.Component {
 
             tile.node.setParent(this.tileLayer);
 
+            const cellAbsolutePos: cc.Vec2 = cell.getAbsolutePosition();
+            const tileRelativePos: cc.Vec2 = tile.convertToRelativePosition(cellAbsolutePos);
+            tile.node.setPosition(tileRelativePos);
+
             cell.tile = tile;
         });
     }
@@ -139,12 +144,16 @@ export default class FieldController extends cc.Component {
 
             if (!fallingTile) return;
 
-            cc.log(fallingTile.coords);
+            let cellOfFallingTile: Cell = this.getCell(fallingTile.coords);
+
+            cellOfFallingTile.tile = null;
+
+            cc.log('FALLING:', currentCell.coords, fallingTile.coords);
             currentCell.attractTile(fallingTile);
         }, isFromLastRow);
 
         combinations.forEach((combination: Cell[]) => {
-            cc.log(combination);
+            cc.log('COMBINATION!', combination);
             combination.forEach((cell: Cell) => {
                 cell.removeTile();
             });
@@ -155,6 +164,10 @@ export default class FieldController extends cc.Component {
     // TODO создание новых тайлов
     public getFallingTile(fallTo: Coords): Tile {
         let currentRow: number = fallTo.row;
+
+        const previousCell = this.getCell(new Coords(fallTo.col, currentRow + 1));
+        
+        if (previousCell && !previousCell.isDisabled && !previousCell.tile) return;
 
         let currentCoords: Coords;
         let currentCell: Cell;
@@ -176,9 +189,11 @@ export default class FieldController extends cc.Component {
                 return newTile;
             }
 
-            if (!currentCell.tile) return findTile();
+            if (currentCell.isBusy) return;
 
-            return currentCell.tile;
+            if (currentCell.tile) currentCell.tile;
+
+            return findTile();
         };
 
         return findTile();
@@ -191,19 +206,19 @@ export default class FieldController extends cc.Component {
 
         let nextCoords: Coords = targetCell.coords.clone();
         let combination: Cell[] = [];
-        let currentCell: Cell = targetCell;
+        let nextCell: Cell = targetCell;
 
         let checkNextTile: Function = () => {
-            combination.push(currentCell);
+            combination.push(nextCell);
 
             nextCoords.addSelf(direction);
-            currentCell = this.getCell(nextCoords);
+            nextCell = this.getCell(nextCoords);
 
             if (
-                !currentCell || 
-                !currentCell.tile || 
-                currentCell.tile.colorID !== targetColorID || 
-                currentCell.isBusy
+                !nextCell || 
+                !nextCell.tile || 
+                nextCell.tile.colorID !== targetColorID || 
+                nextCell.isBusy
             ) { 
                 return combination;
             }
