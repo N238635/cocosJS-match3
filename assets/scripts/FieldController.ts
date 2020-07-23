@@ -70,7 +70,7 @@ export default class FieldController extends cc.Component {
         this.everyCoords((coords: Coords) => {
             cell = this.createCell(coords);
 
-            positionFromCoords = this.getAbsolutePositionFromCoords(coords);
+            positionFromCoords = Coords.getAbsolutePositionFromCoords(coords);
             cellPosition = cell.convertToRelativePosition(positionFromCoords);
 
             cell.node.setPosition(cellPosition);
@@ -106,7 +106,7 @@ export default class FieldController extends cc.Component {
 
             let randomColorID: tileColorID = this.randomColorID(exeptions);
 
-            let tile: Tile = cell.createTile(cell.coords, tileType.Color, randomColorID)
+            let tile: Tile = cell.createTile(tileType.Color, randomColorID)
 
             tile.node.setParent(this.tileLayer);
 
@@ -138,18 +138,21 @@ export default class FieldController extends cc.Component {
                 if (combination.length > 2) combinations.push(combination);
             });
 
-            if (currentCell.tile || currentCell.isDisabled || currentCell.isBusy) return;
+            if (currentCell.tile || currentCell.isDisabled) return;
 
-            let fallingTile: Tile = this.getFallingTile(currentCell.coords);
+            const columnState = this.getColumnState(currentCell.coords);
+            let { shouldDrop, numberOfEmptyRows, dropFrom, tileToDrop, hasTileToDrop } = columnState;
 
-            if (!fallingTile) return;
+            if (!shouldDrop) return;
 
-            let cellOfFallingTile: Cell = this.getCell(fallingTile.coords);
+            tileToDrop = tileToDrop || this.createTileToDrop(currentCell.coords, dropFrom);
 
-            cellOfFallingTile.tile = null;
+            let cellOfDropingTile: Cell = this.getCell(tileToDrop.coords);
 
-            cc.log('FALLING:', currentCell.coords, fallingTile.coords);
-            currentCell.attractTile(fallingTile);
+            if (cellOfDropingTile) cellOfDropingTile.tile = null;
+
+            cc.log('FALLING:', currentCell.coords, tileToDrop.coords);
+            currentCell.attractTile(tileToDrop);
         }, isFromLastRow);
 
         combinations.forEach((combination: Cell[]) => {
@@ -160,43 +163,64 @@ export default class FieldController extends cc.Component {
         });
     }
 
+    public getColumnState(targetCoords: Coords) {
+        let state = {
+            shouldDrop: true,
+            numberOfEmptyRows: 0,
+            hasTileToDrop: false,
+            dropFrom: null,
+            tileToDrop: null
+        };
 
-    // TODO создание новых тайлов
-    public getFallingTile(fallTo: Coords): Tile {
-        let currentRow: number = fallTo.row;
-
-        const previousCell = this.getCell(new Coords(fallTo.col, currentRow + 1));
-        
-        if (previousCell && !previousCell.isDisabled && !previousCell.tile) return;
-
+        let currentRow: number = targetCoords.row;
         let currentCoords: Coords;
         let currentCell: Cell;
 
         let findTile: Function = (): Tile => {
-            currentCoords = new Coords(fallTo.col, currentRow--);
+            currentCoords = new Coords(targetCoords.col, currentRow--);
             currentCell = this.getCell(currentCoords);
 
             if (!currentCell || currentCell.isDisabled) {
+                state.dropFrom = currentCoords;
                 return;
-
-                let cell: Cell = this.getCell(fallTo);
-
-                let randomColorID: tileColorID = this.randomColorID();
-                let newTile: Tile = cell.createTile(currentCoords, tileType.Color, randomColorID);
-
-                newTile.node.setParent(this.tileLayer);
-
-                return newTile;
             }
 
-            if (currentCell.isBusy) return;
+            if (currentCell.isBusy) {
+                state.shouldDrop = false;
+                return;
+            }
 
-            if (currentCell.tile) currentCell.tile;
+            if (currentCell.tile) {
+                state.hasTileToDrop = true;
+                state.tileToDrop = currentCell.tile;
+                return;
+            }
+
+            state.numberOfEmptyRows++;
 
             return findTile();
         };
 
-        return findTile();
+        findTile();
+
+        return state;
+    }
+
+    public createTileToDrop(dropTo: Coords, dropFrom: Coords) {
+        let cell: Cell = this.getCell(dropTo);
+
+        const randomColorID: tileColorID = this.randomColorID();
+        let newTile: Tile = cell.createTile(tileType.Color, randomColorID);
+
+        newTile.coords = dropFrom;
+        newTile.node.setParent(this.tileLayer);
+
+        const currentPosition: cc.Vec2 = Coords.getAbsolutePositionFromCoords(dropFrom);
+        const relCurrentPosition: cc.Vec2 = newTile.convertToRelativePosition(currentPosition);
+
+        newTile.node.setPosition(relCurrentPosition);
+
+        return newTile;
     }
 
     public checkCombination(targetCell: Cell, direction: Coords): Cell[] {
@@ -215,11 +239,11 @@ export default class FieldController extends cc.Component {
             nextCell = this.getCell(nextCoords);
 
             if (
-                !nextCell || 
-                !nextCell.tile || 
-                nextCell.tile.colorID !== targetColorID || 
+                !nextCell ||
+                !nextCell.tile ||
+                nextCell.tile.colorID !== targetColorID ||
                 nextCell.isBusy
-            ) { 
+            ) {
                 return combination;
             }
 
@@ -243,13 +267,14 @@ export default class FieldController extends cc.Component {
     }
 
     protected update(): void {
+        // if (!Coords.isInitialized) return;
         this.checkField();
     }
 
     // TODO Если swap не произошел - отменяем выделение, не начинаем onMouseMove!
     private onMouseDown(event: cc.Event.EventMouse): void {
         let mousePosition: cc.Vec2 = event.getLocation();
-        let coordsFromPosition: Coords = this.getCoordsFromAbsolutePosition(mousePosition);
+        let coordsFromPosition: Coords = Coords.getCoordsFromAbsolutePosition(mousePosition);
         let cell: Cell = this.getCell(coordsFromPosition);
 
         // При любом клике снимаем выделения тайла
@@ -260,7 +285,7 @@ export default class FieldController extends cc.Component {
             return;
         }
 
-        let distance: number = this.distanceBetweenCells(this._clickedCell, cell);
+        let distance: number = (!this._clickedCell) ? null : Coords.distance(this._clickedCell.coords, cell.coords);
 
         // Если между координатами этого и предыдущего нажатий одна клетка, то меняем их местами
         if (distance === 1) {
@@ -277,7 +302,7 @@ export default class FieldController extends cc.Component {
 
     private onMouseUp(event: cc.Event.EventMouse): void {
         let mousePosition: cc.Vec2 = event.getLocation();
-        let fieldCoords: Coords = this.getCoordsFromAbsolutePosition(mousePosition);
+        let fieldCoords: Coords = Coords.getCoordsFromAbsolutePosition(mousePosition);
         let cell: Cell = this.getCell(fieldCoords);
 
         // Конец нажатия - перестаем слушать движения мыши
@@ -335,36 +360,6 @@ export default class FieldController extends cc.Component {
             this.selectedTile.unselect();
             this.selectedTile = null;
         }
-    }
-
-    private getCoordsFromAbsolutePosition(absolutePosition: cc.Vec2): Coords {
-        const { cell, field } = this.config.json;
-
-        let relativePos: cc.Vec2 = this.node.parent.convertToNodeSpaceAR(absolutePosition);
-
-        let column: number = relativePos.x / cell.width + field.columns / 2;
-        let row: number = field.rows / 2 - relativePos.y / cell.height;
-
-        return new Coords(Math.floor(column), Math.floor(row));
-    }
-
-    private getAbsolutePositionFromCoords(coords: Coords): cc.Vec2 {
-        const { cell, field } = this.config.json;
-
-        let relativeX: number = cell.width * (coords.col - (field.columns / 2) + 0.5);
-        let relativeY: number = cell.height * ((field.rows / 2) - coords.row - 0.5);
-        let relativePos: cc.Vec2 = cc.v2(relativeX, relativeY);
-
-        return this.node.parent.convertToWorldSpaceAR(relativePos);
-    }
-
-    private distanceBetweenCells(cell1: Cell, cell2: Cell): number {
-        if (!cell1 || !cell2) return;
-
-        let distanceX: number = Math.abs(cell1.coords.col - cell2.coords.col);
-        let distanceY: number = Math.abs(cell1.coords.row - cell2.coords.row);
-
-        return Math.hypot(distanceX, distanceY);
     }
 
     private randomColorID(exeptions?: tileColorID[]): tileColorID {

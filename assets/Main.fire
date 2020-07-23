@@ -435,17 +435,14 @@
     "config": {
       "__uuid__": "814d6be9-7ef5-48e0-9233-69c97a834b57"
     },
-    "cellLayer": {
-      "__id__": 6
-    },
     "tileLayer": {
       "__id__": 7
     },
+    "cellLayer": {
+      "__id__": 6
+    },
     "cellPrefab": {
       "__uuid__": "148da60f-96f5-4bcc-8606-8c3808ac8f0b"
-    },
-    "tilePrefab": {
-      "__uuid__": "d01075a5-c693-43e3-9e66-99876fc4903d"
     },
     "_id": "50hfEpZAhN8rlKVn5n691C"
   },
@@ -711,6 +708,9 @@
     },
     "background": {
       "__id__": 15
+    },
+    "tilePrefab": {
+      "__uuid__": "d01075a5-c693-43e3-9e66-99876fc4903d"
     },
     "_id": "78hY+zsH1JXKaKUcDGmuwB"
   },

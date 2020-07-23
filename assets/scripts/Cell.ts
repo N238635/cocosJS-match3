@@ -19,12 +19,12 @@ export default class Cell extends cc.Component {
     public coords: Coords;
     public tile: Tile;
 
-    public createTile(coords: Coords, type: tileType, colorID?: tileColorID): Tile {
+    public createTile(type: tileType, colorID?: tileColorID): Tile {
         let tileNode: cc.Node = cc.instantiate(this.tilePrefab);
         let tile: Tile = tileNode.getComponent(Tile);
 
         tile.type = type;
-        tile.coords = coords;
+        tile.coords = this.coords;
 
         if (colorID || colorID === 0) tile.colorID = colorID;
 
@@ -49,18 +49,9 @@ export default class Cell extends cc.Component {
     }
 
     public attractTile(tile: Tile): void {
-        // this.isBusy = true;
-
         this.tile = tile;
 
-        this.tile.coords = this.coords;
-
-        const absolutePos: cc.Vec2 = this.getAbsolutePosition();
-        const tilePos: cc.Vec2 = this.tile.convertToRelativePosition(absolutePos);
-
-        cc.tween(this.tile.node).to(0.2, { position: tilePos }).call(() => {
-            // this.isBusy = false;
-        }).start();
+        this.tile.moveTo(this.coords);
     }
 
     public swapTiles(targetCell: Cell): void {
