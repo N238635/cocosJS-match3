@@ -53,19 +53,28 @@ export default class Tile extends cc.Component {
         return this.node.convertToWorldSpaceAR(cc.v2());
     }
 
-    public moveTo(targetCoords: Coords): void {
+    public delete(callback?: () => void): void {
+        cc.tween(this.node).to(0.2, { scale: 0 }).call(() => {
+            this.node.destroy();
+            if (callback) callback();
+        }).start();
+    }
+
+    public moveTo(targetCoords: Coords, callback?: () => void): void {
         const absolutePosition: cc.Vec2 = Coords.getAbsolutePositionFromCoords(targetCoords);
         const targetPosition: cc.Vec2 = this.convertToRelativePosition(absolutePosition);
-        
+
         const distance: number = Coords.distance(this.coords, targetCoords);
         const animationTime: number = 0.2;
         const duration: number = animationTime * distance;
 
-        cc.log(duration);
-
         this.coords = targetCoords;
 
-        cc.tween(this.node).to(duration, { position: targetPosition }).start();
+        cc.log(duration);
+
+        cc.tween(this.node).to(duration, { position: targetPosition }).call(() => {
+            if (callback) callback();
+        }).start();
     }
 
     protected start(): void {

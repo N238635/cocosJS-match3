@@ -118,7 +118,7 @@ export default class FieldController extends cc.Component {
         });
     }
 
-    // TODO сделать падение тайлов / добавление бонусов
+    // TODO добавление бонусов
     public checkField() {
         const directions = [
             new Coords(1, 0),
@@ -138,89 +138,14 @@ export default class FieldController extends cc.Component {
                 if (combination.length > 2) combinations.push(combination);
             });
 
-            if (currentCell.tile || currentCell.isDisabled) return;
-
-            const columnState = this.getColumnState(currentCell.coords);
-            let { shouldDrop, numberOfEmptyRows, dropFrom, tileToDrop, hasTileToDrop } = columnState;
-
-            if (!shouldDrop) return;
-
-            tileToDrop = tileToDrop || this.createTileToDrop(currentCell.coords, dropFrom);
-
-            let cellOfDropingTile: Cell = this.getCell(tileToDrop.coords);
-
-            if (cellOfDropingTile) cellOfDropingTile.tile = null;
-
-            cc.log('FALLING:', currentCell.coords, tileToDrop.coords);
-            currentCell.attractTile(tileToDrop);
+            if (!currentCell.tile && !currentCell.isDisabled) this.fillColumn(currentCell);
         }, isFromLastRow);
 
         combinations.forEach((combination: Cell[]) => {
-            cc.log('COMBINATION!', combination);
             combination.forEach((cell: Cell) => {
                 cell.removeTile();
             });
         });
-    }
-
-    public getColumnState(targetCoords: Coords) {
-        let state = {
-            shouldDrop: true,
-            numberOfEmptyRows: 0,
-            hasTileToDrop: false,
-            dropFrom: null,
-            tileToDrop: null
-        };
-
-        let currentRow: number = targetCoords.row;
-        let currentCoords: Coords;
-        let currentCell: Cell;
-
-        let findTile: Function = (): Tile => {
-            currentCoords = new Coords(targetCoords.col, currentRow--);
-            currentCell = this.getCell(currentCoords);
-
-            if (!currentCell || currentCell.isDisabled) {
-                state.dropFrom = currentCoords;
-                return;
-            }
-
-            if (currentCell.isBusy) {
-                state.shouldDrop = false;
-                return;
-            }
-
-            if (currentCell.tile) {
-                state.hasTileToDrop = true;
-                state.tileToDrop = currentCell.tile;
-                return;
-            }
-
-            state.numberOfEmptyRows++;
-
-            return findTile();
-        };
-
-        findTile();
-
-        return state;
-    }
-
-    public createTileToDrop(dropTo: Coords, dropFrom: Coords) {
-        let cell: Cell = this.getCell(dropTo);
-
-        const randomColorID: tileColorID = this.randomColorID();
-        let newTile: Tile = cell.createTile(tileType.Color, randomColorID);
-
-        newTile.coords = dropFrom;
-        newTile.node.setParent(this.tileLayer);
-
-        const currentPosition: cc.Vec2 = Coords.getAbsolutePositionFromCoords(dropFrom);
-        const relCurrentPosition: cc.Vec2 = newTile.convertToRelativePosition(currentPosition);
-
-        newTile.node.setPosition(relCurrentPosition);
-
-        return newTile;
     }
 
     public checkCombination(targetCell: Cell, direction: Coords): Cell[] {
@@ -251,6 +176,126 @@ export default class FieldController extends cc.Component {
         };
 
         return checkNextTile();
+    }
+
+    public fillColumn(targetCell: Cell): void {
+        const targetCoords: Coords = targetCell.coords;
+
+        const foundResult = this.getCellToFallFrom(targetCoords);
+
+        let { shouldFall, cellToFallFrom, startCoords, diagonalOptions } = foundResult;
+
+        if (!shouldFall) return;
+
+        if (cellToFallFrom && cellToFallFrom.tile) {
+            if (cellToFallFrom.isBusy) return;
+
+            targetCell.isBusy = true;
+
+            targetCell.attractTile(cellToFallFrom.tile);
+
+            cellToFallFrom.tile = null;
+
+            return;
+        }
+
+        if (startCoords.row !== -1) {
+            if (diagonalOptions.length === 0) return;
+
+            const randomOptionIndex: number = Math.floor(Math.random() * diagonalOptions.length);
+            const diagonalCell = diagonalOptions[randomOptionIndex];
+
+            const newTargetCell = this.getCell(targetCell.coords.col, diagonalCell.coords.row + 1);
+
+            if (diagonalCell.isBusy) return;
+
+            newTargetCell.isBusy = true;
+
+            newTargetCell.attractTile(diagonalCell.tile);
+
+            diagonalCell.tile = null;
+
+            return;
+        }
+
+        let currentCoords: Coords;
+        let currentCell: Cell;
+
+        for (let row: number = targetCoords.row; row >= 0; row--) {
+            currentCoords = new Coords(targetCoords.col, row);
+            currentCell = this.getCell(currentCoords);
+
+            currentCell.isBusy = true;
+
+            this.createAndDropTileWithDelay(currentCell, 200 * (targetCoords.row - row));
+        }
+    }
+
+    public getCellToFallFrom(targetCoords: Coords) {
+        let result = {
+            shouldFall: true,
+            cellToFallFrom: null,
+            startCoords: targetCoords.clone(),
+            diagonalOptions: []
+        };
+
+        let checkForDiagonals: boolean = true;
+        let diagonalOptionsFound: Cell[] = [];
+
+        let leftCell: Cell = null;
+        let rightCell: Cell = null;
+
+        let findTile: Function = (): Tile => {
+            result.startCoords.row--;
+
+            if (checkForDiagonals && result.startCoords.row < targetCoords.row) {
+                diagonalOptionsFound = []
+
+                leftCell = this.getCell(targetCoords.col - 1, result.startCoords.row);
+                rightCell = this.getCell(targetCoords.col + 1, result.startCoords.row);
+
+                if (leftCell && leftCell.tile) diagonalOptionsFound.push(leftCell);
+                if (rightCell && rightCell.tile) diagonalOptionsFound.push(rightCell);
+
+                if (diagonalOptionsFound.length === 0) checkForDiagonals = false;
+                else result.diagonalOptions = diagonalOptionsFound;
+            }
+
+            result.cellToFallFrom = this.getCell(result.startCoords);
+
+            if (!result.cellToFallFrom || result.cellToFallFrom.isDisabled) return;
+
+            if (result.cellToFallFrom.isBusy) {
+                result.shouldFall = false;
+                return;
+            }
+
+            if (result.cellToFallFrom.tile) return;
+
+            return findTile();
+        };
+
+        findTile();
+
+        return result;
+    }
+
+    public createAndDropTileWithDelay(targetCell: Cell, delay: number): void {
+        setTimeout(() => {
+            const randomColorID: tileColorID = this.randomColorID();
+            let newTile: Tile = targetCell.createTile(tileType.Color, randomColorID);
+
+            const fallFrom = new Coords(targetCell.coords.col, -1);
+            newTile.coords = fallFrom;
+            newTile.node.setParent(this.tileLayer);
+
+            const currentPosition: cc.Vec2 = Coords.getAbsolutePositionFromCoords(fallFrom);
+            const relCurrentPosition: cc.Vec2 = newTile.convertToRelativePosition(currentPosition);
+
+            newTile.node.setPosition(relCurrentPosition);
+
+            targetCell.attractTile(newTile);
+        }, delay);
     }
 
     protected onEnable(): void {
@@ -314,7 +359,6 @@ export default class FieldController extends cc.Component {
         if (this._clickedCell === cell) this.selectTile(cell.tile);
     }
 
-    // TODO избавиться от else if
     private onMouseMove(event: cc.Event.EventMouse): void {
         if (!this._canSwipe || !this._clickedCell) return;
 
