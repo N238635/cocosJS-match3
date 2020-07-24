@@ -34,30 +34,28 @@ export default class Cell extends cc.Component {
     public removeTile(): void {
         if (!this.tile || this.isBusy) return;
 
-        cc.log(`Removed: [${this.tile.coords.col}, ${this.tile.coords.row}] : ${this.tile.colorID}`);
-        if (this.isBusy) cc.log('BUSY!!!!');
+        // cc.log(`Removed: [${this.tile.coords.col}, ${this.tile.coords.row}] : ${this.tile.colorID}`);
 
         this.isBusy = true;
 
-        let tileNode = this.tile.node;
-        this.tile = null;
+        this.tile.delete(() => { this.isBusy = false });
 
-        cc.tween(tileNode).to(0.2, { scale: 0 }).call(() => {
-            tileNode.destroy();
-            this.isBusy = false;
-        }).start();
+        this.tile = null;
     }
 
     public attractTile(tile: Tile): void {
+        cc.log('FALLING:', this.coords, tile.coords);
+        this.isBusy = true;
+
         this.tile = tile;
 
-        this.tile.moveTo(this.coords);
+        this.tile.moveTo(this.coords, () => { this.isBusy = false });
     }
 
     public swapTiles(targetCell: Cell): void {
         if (!targetCell || !this.tile || !targetCell.tile || this.isBusy || targetCell.isBusy) return;
 
-        let targetTile = targetCell.tile;
+        let targetTile: Tile = targetCell.tile;
         targetCell.attractTile(this.tile);
         this.attractTile(targetTile);
 
