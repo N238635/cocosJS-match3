@@ -53,8 +53,6 @@ export default class Cell extends cc.Component {
     }
 
     public swapTiles(targetCell: Cell): void {
-        if (!targetCell || !this.tile || !targetCell.tile || this.isBusy || targetCell.isBusy) return;
-
         let targetTile: Tile = targetCell.tile;
         targetCell.attractTile(this.tile);
         this.attractTile(targetTile);

@@ -20,6 +20,7 @@ export default class FieldController extends cc.Component {
     private _clickedCell: Cell;
     private _canSwipe: boolean = false;
     private _field: Cell[][] = [];
+    private _lastSwapCells: Cell[];
 
     public everyCoords(everyCoordsCallback: (coords: Coords) => void, fromLastRow: boolean = false): void {
         const { field } = this.config.json;
@@ -146,6 +147,8 @@ export default class FieldController extends cc.Component {
                 cell.removeTile();
             });
         });
+
+        if (combinations.length > 0) return true;
     }
 
     public checkCombination(targetCell: Cell, direction: Coords): Cell[] {
@@ -313,7 +316,21 @@ export default class FieldController extends cc.Component {
 
     protected update(): void {
         // if (!Coords.isInitialized) return;
-        this.checkField();
+        let hasFoundCombination: boolean = this.checkField();
+
+        if (hasFoundCombination) this._lastSwapCells = null;
+
+        if (
+            !this._lastSwapCells ||
+            this._lastSwapCells[0].isBusy ||
+            this._lastSwapCells[1].isBusy
+        ) {
+            return;
+        }
+
+        this._lastSwapCells[0].swapTiles(this._lastSwapCells[1]);
+
+        this._lastSwapCells = null;
     }
 
     // TODO Если swap не произошел - отменяем выделение, не начинаем onMouseMove!
@@ -334,7 +351,11 @@ export default class FieldController extends cc.Component {
 
         // Если между координатами этого и предыдущего нажатий одна клетка, то меняем их местами
         if (distance === 1) {
-            this._clickedCell.swapTiles(cell);
+            if (this._clickedCell.tile && !this._clickedCell.isBusy && !cell.isBusy) {
+                this._lastSwapCells = [this._clickedCell, cell];
+
+                this._clickedCell.swapTiles(cell);
+            }
         } else {
             // Если не меняем местами - начинаем слушать движение мыши
             this._canSwipe = true;
@@ -390,7 +411,12 @@ export default class FieldController extends cc.Component {
 
         if (!targetCell || !targetCell.tile) return;
 
-        targetCell.swapTiles(this._clickedCell);
+        if (this._clickedCell.tile && !this._clickedCell.isBusy && !targetCell.isBusy) {
+            this._lastSwapCells = [this._clickedCell, targetCell];
+
+            targetCell.swapTiles(this._clickedCell);
+        }
+
         this._clickedCell = null;
     }
 
