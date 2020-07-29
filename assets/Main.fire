@@ -177,7 +177,7 @@
       "array": [
         0,
         0,
-        513.5530644441722,
+        514.4190898479566,
         0,
         0,
         0,
@@ -941,6 +941,15 @@
     },
     "whiteCircle": {
       "__uuid__": "0cdd936b-2cea-4e56-a855-0591d8f5c1c5"
+    },
+    "bonusVertical": {
+      "__uuid__": "cd2e249c-09ea-4596-9bb9-dcc13a955d2f"
+    },
+    "bonusHorizontal": {
+      "__uuid__": "db82a764-5e46-4e86-8d98-bfa0ed2b66da"
+    },
+    "bonusRainbow": {
+      "__uuid__": "057f3706-67a2-44d6-bc16-68b75619739c"
     },
     "_id": "0flRQcV55H3ZBJ8Y3kKlt3"
   },

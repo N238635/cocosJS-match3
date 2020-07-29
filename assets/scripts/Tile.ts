@@ -31,7 +31,11 @@ const colorsRGB = {
 export default class Tile extends cc.Component {
 
     @property(cc.Sprite) sprite: cc.Sprite = null;
+
     @property(cc.SpriteFrame) whiteCircle: cc.SpriteFrame = null;
+    @property(cc.SpriteFrame) bonusVertical: cc.SpriteFrame = null;
+    @property(cc.SpriteFrame) bonusHorizontal: cc.SpriteFrame = null;
+    @property(cc.SpriteFrame) bonusRainbow: cc.SpriteFrame = null;
 
     public coords: Coords = new Coords();
     public type: tileType = tileType.Color;
@@ -70,8 +74,6 @@ export default class Tile extends cc.Component {
 
         this.coords = targetCoords;
 
-        cc.log(duration);
-
         cc.tween(this.node).to(duration, { position: targetPosition }).call(() => {
             if (callback) callback();
         }).start();
@@ -88,10 +90,11 @@ export default class Tile extends cc.Component {
     private setSprite(): void {
         const spriteFrames = {
             [tileType.Color]: this.whiteCircle,
+            [tileType.Vertical]: this.bonusVertical,
+            [tileType.Horizontal]: this.bonusHorizontal,
+            [tileType.Rainbow]: this.bonusRainbow,
         };
 
-        if (spriteFrames[tileType.Color]) {
-            this.sprite.spriteFrame = spriteFrames[tileType.Color];
-        }
+        this.sprite.spriteFrame = spriteFrames[this.type];
     }
 }
