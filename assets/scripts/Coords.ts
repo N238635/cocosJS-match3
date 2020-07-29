@@ -2,7 +2,6 @@ export default class Coords {
     public static fieldSize: cc.Size = null;
     public static cellSize: cc.Size = null;
     public static fieldNode: cc.Node = null;
-    public static isInitialized: boolean = false;
 
     public col: number = 0;
     public row: number = 0;

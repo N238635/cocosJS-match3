@@ -14,7 +14,6 @@ export default class GameController extends cc.Component {
         Coords.cellSize = cc.size(cell.width, cell.height);
         Coords.fieldSize = cc.size(field.rows, field.columns);
         Coords.fieldNode = this.field.node;
-        Coords.isInitialized = true;
         
         this.field.initField();
 
