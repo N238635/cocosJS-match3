@@ -33,9 +33,9 @@ export default class Tile extends cc.Component {
     @property(cc.Sprite) sprite: cc.Sprite = null;
 
     @property(cc.SpriteFrame) whiteCircle: cc.SpriteFrame = null;
-    @property(cc.SpriteFrame) bonusVertical: cc.SpriteFrame = null;
-    @property(cc.SpriteFrame) bonusHorizontal: cc.SpriteFrame = null;
-    @property(cc.SpriteFrame) bonusRainbow: cc.SpriteFrame = null;
+    @property(cc.SpriteFrame) boosterVertical: cc.SpriteFrame = null;
+    @property(cc.SpriteFrame) boosterHorizontal: cc.SpriteFrame = null;
+    @property(cc.SpriteFrame) boosterRainbow: cc.SpriteFrame = null;
 
     public coords: Coords = new Coords();
     public type: tileType = tileType.Color;
@@ -90,9 +90,9 @@ export default class Tile extends cc.Component {
     private setSprite(): void {
         const spriteFrames = {
             [tileType.Color]: this.whiteCircle,
-            [tileType.Vertical]: this.bonusVertical,
-            [tileType.Horizontal]: this.bonusHorizontal,
-            [tileType.Rainbow]: this.bonusRainbow,
+            [tileType.Vertical]: this.boosterVertical,
+            [tileType.Horizontal]: this.boosterHorizontal,
+            [tileType.Rainbow]: this.boosterRainbow,
         };
 
         this.sprite.spriteFrame = spriteFrames[this.type];
