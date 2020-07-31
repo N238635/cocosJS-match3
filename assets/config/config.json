@@ -19,5 +19,8 @@
     "cell": {
         "width": 62,
         "height": 62
-    }
+    },
+    "task": 12,
+    "turns": 10,
+    "continueTurns": 5
 }

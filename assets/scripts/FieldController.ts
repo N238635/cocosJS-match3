@@ -1,7 +1,8 @@
 import Coords from "./Coords";
 import Cell from "./Cell";
-import Tile, { tileColorID, tileType } from "./Tile";
+import Tile, { tileColorID, tileType, colorsRGB } from "./Tile";
 import Counter from "./Counter";
+import EndScreen from "./EndScreen";
 
 const { ccclass, property } = cc._decorator;
 
@@ -10,21 +11,27 @@ export default class FieldController extends cc.Component {
 
     @property(cc.JsonAsset) config: cc.JsonAsset = null;
 
+    @property(EndScreen) endScreen: EndScreen = null;
     @property(Counter) turnsCounter: Counter = null;
     @property(Counter) taskCounter: Counter = null;
-
+    @property(cc.Node) taskCircle: cc.Node = null;
+    
     @property(cc.Node) tileLayer: cc.Node = null;
     @property(cc.Node) cellLayer: cc.Node = null;
 
     @property(cc.Prefab) cellPrefab: cc.Prefab = null;
 
-    public selectedTile: Tile;
+    public selectedTile: Tile = null;
     public isChecking: boolean = false;
-
+    
     private _clickedCell: Cell = null;
-    private _canSwipe: boolean = false;
     private _field: Cell[][] = [];
-    private _lastSwapCells: Cell[];
+    private _taskColor: tileColorID = null;
+    private _lastSwapCells: Cell[] = null;
+
+    private _canSwipe: boolean = false;
+    private _isBonusActive: boolean = false;
+    private _isGameOver: boolean = false;
 
     public everyCoords(everyCoordsCallback: (coords: Coords) => void, fromLastRow: boolean = false): void {
         const { field } = this.config.json;
@@ -34,7 +41,7 @@ export default class FieldController extends cc.Component {
                 callback(row);
             }
         }
-
+        
         let fromEnd = (callback: (row: number) => void): void => {
             for (let row: number = field.rows - 1; row >= 0; row--) {
                 callback(row);
@@ -49,32 +56,40 @@ export default class FieldController extends cc.Component {
             }
         });
     }
-
+    
     public everyCell(callback: (cell: Cell) => void, fromLastRow: boolean = false): void {
         this.everyCoords((coords: Coords) => {
             callback(this.getCell(coords));
         }, fromLastRow);
     }
-
+    
     public getCell(coords: Coords | number, row?: number): Cell {
         const isInvalidType: boolean = typeof (coords) === 'number';
         const col: number = isInvalidType && (coords as number);
-
+        
         let realCoords: Coords = isInvalidType ? new Coords(col, row) : (coords as Coords);
         if (!realCoords) return;
         if (!this._field[realCoords.row]) return;
 
         return this._field[realCoords.row][realCoords.col];
     }
+    
+    public initScoreboard(): void {
+        this._taskColor = this.randomColorID();
+        this.taskCircle.color = cc.color(...colorsRGB[this._taskColor]);
+
+        this.taskCounter.count = this.config.json.task;
+        this.turnsCounter.count = this.config.json.turns;
+    }
 
     public initField(): void {
         const { field, cell: cellParams } = this.config.json;
         let positionFromCoords: cc.Vec2, cellPosition: cc.Vec2;
-        let cell: Cell;
-
+        let cell: Cell = null;
+        
         this.everyCoords((coords: Coords) => {
             cell = this.createCell(coords);
-
+            
             positionFromCoords = Coords.getAbsolutePositionFromCoords(coords);
             cellPosition = cell.convertToRelativePosition(positionFromCoords);
 
@@ -196,7 +211,7 @@ export default class FieldController extends cc.Component {
             };
 
             combination.cells.forEach((cell: Cell) => {
-                cell.removeTile(() => createBooster(cell, boosterCell));
+                this.removeTileFromCell(cell, () => createBooster(cell, boosterCell));
             });
         });
 
@@ -277,8 +292,8 @@ export default class FieldController extends cc.Component {
             return;
         }
 
-        let currentCoords: Coords;
-        let currentCell: Cell;
+        let currentCoords: Coords = null;
+        let currentCell: Cell = null;
 
         for (let row = targetCoords.row; row >= 0; row--) {
             currentCoords = new Coords(targetCoords.col, row);
@@ -358,6 +373,31 @@ export default class FieldController extends cc.Component {
         }, delay);
     }
 
+    public onBonusButton() {
+        this._isBonusActive = !this._isBonusActive;
+    }
+
+    public onRestartButton() {
+        this.everyCell((cell: Cell) => {
+            cell.removeTile();
+        });
+
+        this.initScoreboard();
+        this.initField();
+
+        this.exitEndScreen();
+    }
+
+    public onExitButton() {
+        cc.game.end();
+    }
+
+    public onContinueButton() {
+        this.turnsCounter.count += this.config.json.continueTurns;
+
+        this.exitEndScreen();
+    }
+
     protected onEnable(): void {
         this.node.on(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
         this.node.on(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
@@ -374,9 +414,30 @@ export default class FieldController extends cc.Component {
     protected update(): void {
         if (!Coords.isInitialized) return;
 
+        if (this.taskCounter.count === 0 && !this._isGameOver) {
+            this._isGameOver = true;
+
+            this.endScreen.showWin();
+
+            cc.log('Победа!');
+        }
+
+        if (this.turnsCounter.count === 0 && !this._isGameOver) {
+            this._isGameOver = true;
+
+            this.endScreen.showLose();
+
+            cc.log('Поражение!');
+        }
+
         let hasFoundCombination: boolean = this.checkField();
 
-        if (hasFoundCombination) this._lastSwapCells = null;
+
+        if (hasFoundCombination && this._lastSwapCells) {
+            this.turnsCounter.count--;
+            this._lastSwapCells = null;
+            return;
+        }
 
         if (
             !this._lastSwapCells ||
@@ -391,8 +452,16 @@ export default class FieldController extends cc.Component {
         this._lastSwapCells = null;
     }
 
+    private exitEndScreen(): void {
+        this.endScreen.hide();
+
+        this._isGameOver = false;
+    }
+
     // TODO Если swap не произошел - отменяем выделение, не начинаем onMouseMove!
     private onMouseDown(event: cc.Event.EventMouse): void {
+        if (this._isGameOver) return;
+
         let mousePosition: cc.Vec2 = event.getLocation();
         let coordsFromPosition: Coords = Coords.getCoordsFromAbsolutePosition(mousePosition);
         let cell: Cell = this.getCell(coordsFromPosition);
@@ -401,6 +470,12 @@ export default class FieldController extends cc.Component {
 
         if (!cell || !cell.isTileAvailable()) {
             this._clickedCell = null;
+            return;
+        }
+
+        if (this._isBonusActive) {
+            this.removeTileFromCell(cell);
+            this._isBonusActive = false;
             return;
         }
 
@@ -421,11 +496,15 @@ export default class FieldController extends cc.Component {
         this._clickedCell = null;
 
         if (cell.tile.type !== tileType.Color && distance === 0) {
+            if (cell.tile.type !== tileType.Rainbow) this.turnsCounter.count--;
+
             this.activateBooster(cell);
         }
     }
 
     private onMouseUp(event: cc.Event.EventMouse): void {
+        if (this._isGameOver) return;
+
         let mousePosition: cc.Vec2 = event.getLocation();
         let fieldCoords: Coords = Coords.getCoordsFromAbsolutePosition(mousePosition);
         let cell: Cell = this.getCell(fieldCoords);
@@ -440,7 +519,7 @@ export default class FieldController extends cc.Component {
     }
 
     private onMouseMove(event: cc.Event.EventMouse): void {
-        if (!this._canSwipe || !this._clickedCell) return;
+        if (!this._canSwipe || !this._clickedCell || this._isGameOver) return;
 
         const { cell } = this.config.json
         const mousePosition: cc.Vec2 = event.getLocation();
@@ -525,7 +604,7 @@ export default class FieldController extends cc.Component {
 
     private removeEveryTile() {
         this.everyCell((cell: Cell) => {
-            cell.removeTile();
+            this.removeTileFromCell(cell);
         });
     }
 
@@ -561,10 +640,14 @@ export default class FieldController extends cc.Component {
         }
     }
 
-    private removeTileFromCell(cell: Cell): void {
+    private removeTileFromCell(cell: Cell, callback?: Function): void {
         if (!cell || !cell.tile || cell.isDisabled) return;
 
-        if (cell.tile.type === tileType.Color) return void cell.removeTile();
+        if (cell.tile.type === tileType.Color) {
+            if (cell.tile.colorID === this._taskColor) this.taskCounter.count--;
+
+            return void cell.removeTile(callback);
+        }
 
         this.activateBooster(cell);
     }
