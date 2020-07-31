@@ -12,16 +12,12 @@
             [1, 1, 1, 1, 1, 1, 1, 1, 1]
         ],
         "rows": 9,
-        "columns": 9
+        "columns": 9,
+        "leftPadding": 150,
+        "bottomPadding": 0
     },
     "cell": {
         "width": 62,
         "height": 62
-    },
-    "canvas": {
-        "width": 760,
-        "height": 690,
-        "leftPadding": 100,
-        "topPadding": 100
     }
 }

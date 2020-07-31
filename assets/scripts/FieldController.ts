@@ -1,6 +1,7 @@
 import Coords from "./Coords";
 import Cell from "./Cell";
 import Tile, { tileColorID, tileType } from "./Tile";
+import Counter from "./Counter";
 
 const { ccclass, property } = cc._decorator;
 
@@ -8,6 +9,9 @@ const { ccclass, property } = cc._decorator;
 export default class FieldController extends cc.Component {
 
     @property(cc.JsonAsset) config: cc.JsonAsset = null;
+
+    @property(Counter) turnsCounter: Counter = null;
+    @property(Counter) taskCounter: Counter = null;
 
     @property(cc.Node) tileLayer: cc.Node = null;
     @property(cc.Node) cellLayer: cc.Node = null;
@@ -17,7 +21,7 @@ export default class FieldController extends cc.Component {
     public selectedTile: Tile;
     public isChecking: boolean = false;
 
-    private _clickedCell: Cell;
+    private _clickedCell: Cell = null;
     private _canSwipe: boolean = false;
     private _field: Cell[][] = [];
     private _lastSwapCells: Cell[];
@@ -54,9 +58,9 @@ export default class FieldController extends cc.Component {
 
     public getCell(coords: Coords | number, row?: number): Cell {
         const isInvalidType: boolean = typeof (coords) === 'number';
-        const column: number = isInvalidType && (coords as number);
+        const col: number = isInvalidType && (coords as number);
 
-        let realCoords: Coords = isInvalidType ? new Coords(column, row) : (coords as Coords);
+        let realCoords: Coords = isInvalidType ? new Coords(col, row) : (coords as Coords);
         if (!realCoords) return;
         if (!this._field[realCoords.row]) return;
 
@@ -93,58 +97,106 @@ export default class FieldController extends cc.Component {
             let exeptions: tileColorID[] = [];
 
             const checkDirections = [
-                { col: -1, row: 0 },
-                { col: 0, row: -1 }
+                Coords.left,
+                Coords.up
             ];
 
-            let currentCell: Cell;
+            let currentCell: Cell = null;
 
             checkDirections.forEach((direction) => {
                 currentCell = this.getCell(cellCoords.col + direction.col, cellCoords.row + direction.row);
 
-                if (currentCell && currentCell.tile) exeptions.push(currentCell.tile.colorID);
+                if (currentCell && currentCell.isTileAvailable()) exeptions.push(currentCell.tile.colorID);
             });
 
             let randomColorID: tileColorID = this.randomColorID(exeptions);
 
-            let tile: Tile = cell.createTile(tileType.Color, randomColorID)
+            let newTile: Tile = cell.createTile(tileType.Color, randomColorID)
+            newTile.node.setParent(this.tileLayer);
 
-            tile.node.setParent(this.tileLayer);
-
-            const cellAbsolutePos: cc.Vec2 = cell.getAbsolutePosition();
-            const tileRelativePos: cc.Vec2 = tile.convertToRelativePosition(cellAbsolutePos);
-            tile.node.setPosition(tileRelativePos);
-
-            cell.tile = tile;
+            cell.forceMoveContents();
         });
     }
 
-    // TODO добавление бонусов
     public checkField() {
         const directions = [
-            new Coords(1, 0),
-            new Coords(0, 1)
+            Coords.right,
+            Coords.up
         ];
 
+        const boosterDirections = [
+            "Vertical",
+            "Horizontal"
+        ];
+
+        type combinationType = { cells: Cell[], boosterType: tileType };
+
         let isFromLastRow = true;
-        let combinations: Cell[][] = [];
-        let combination: Cell[];
+        let combinations: combinationType[] = [];
+        let combination: combinationType;
+        let combinationCells: Cell[];
 
         this.everyCell((currentCell: Cell) => {
             if (currentCell.isBusy) return;
 
-            directions.forEach((direction: Coords) => {
-                combination = this.checkCombination(currentCell, direction);
+            for (let directionIndex in directions) {
+                combinationCells = this.checkCombination(currentCell, directions[directionIndex]);
 
-                if (combination.length > 2) combinations.push(combination);
-            });
+                if (combinationCells.length < 3) continue;
+
+                combination = {
+                    cells: combinationCells,
+                    boosterType: null
+                };
+
+                if (combinationCells.length > 3) {
+                    combination.boosterType = combinationCells.length === 4 ? tileType[boosterDirections[directionIndex]] : tileType.Rainbow;
+                }
+
+                combinations.push(combination);
+
+                combination.cells.forEach((cell: Cell) => {
+                    cell.isBusy = true;
+                });
+            }
 
             if (!currentCell.tile && !currentCell.isDisabled) this.fillColumn(currentCell);
         }, isFromLastRow);
 
-        combinations.forEach((combination: Cell[]) => {
-            combination.forEach((cell: Cell) => {
-                cell.removeTile();
+        let findCombinationCellFromLastMove = (currentCell: Cell, swappedCells: Cell[]): Cell => {
+            if (!swappedCells) return currentCell;
+
+            for (let swappedCell of swappedCells) {
+                if (
+                    swappedCell.tile &&
+                    currentCell.tile &&
+                    swappedCell.tile.colorID === currentCell.tile.colorID
+                ) {
+                    return swappedCell;
+                }
+            }
+
+            return currentCell;
+        }
+
+        let randomIndex: number;
+
+        combinations.forEach((combination: { cells: Cell[], boosterType: tileType }) => {
+            randomIndex = Math.floor(Math.random() * combination.cells.length);
+
+            let boosterCell = findCombinationCellFromLastMove(combination.cells[randomIndex], this._lastSwapCells);
+
+            const createBooster = (cell: Cell, targetCell: Cell): void => {
+                if (!combination.boosterType || targetCell !== cell) return;
+
+                let newTile = cell.createTile(combination.boosterType);
+                newTile.node.setParent(this.tileLayer);
+
+                cell.forceMoveContents();
+            };
+
+            combination.cells.forEach((cell: Cell) => {
+                cell.removeTile(() => createBooster(cell, boosterCell));
             });
         });
 
@@ -152,7 +204,7 @@ export default class FieldController extends cc.Component {
     }
 
     public checkCombination(targetCell: Cell, direction: Coords): Cell[] {
-        if (!targetCell.tile) return [];
+        if (!targetCell.tile || (!targetCell.tile.colorID && targetCell.tile.colorID !== 0)) return [];
 
         const targetColorID: number = targetCell.tile.colorID;
 
@@ -166,11 +218,15 @@ export default class FieldController extends cc.Component {
             nextCoords.addSelf(direction);
             nextCell = this.getCell(nextCoords);
 
+            if (combination.length > 2) {
+                let a = [nextCell];
+                cc.log(a, targetColorID);
+            }
+
             if (
                 !nextCell ||
-                !nextCell.tile ||
-                nextCell.tile.colorID !== targetColorID ||
-                nextCell.isBusy
+                !nextCell.isTileAvailable() ||
+                nextCell.tile.colorID !== targetColorID
             ) {
                 return combination;
             }
@@ -224,7 +280,7 @@ export default class FieldController extends cc.Component {
         let currentCoords: Coords;
         let currentCell: Cell;
 
-        for (let row: number = targetCoords.row; row >= 0; row--) {
+        for (let row = targetCoords.row; row >= 0; row--) {
             currentCoords = new Coords(targetCoords.col, row);
             currentCell = this.getCell(currentCoords);
 
@@ -234,7 +290,12 @@ export default class FieldController extends cc.Component {
         }
     }
 
-    public getCellToFallFrom(targetCoords: Coords) {
+    public getCellToFallFrom(targetCoords: Coords): {
+        shouldFall: boolean,
+        cellToFallFrom: Cell,
+        startCoords: Coords,
+        diagonalOptions: Cell[]
+    } {
         let result = {
             shouldFall: true,
             cellToFallFrom: null,
@@ -248,7 +309,7 @@ export default class FieldController extends cc.Component {
         let leftCell: Cell = null;
         let rightCell: Cell = null;
 
-        let findTile: Function = (): Tile => {
+        let findTile = () => {
             result.startCoords.row--;
 
             if (checkForDiagonals && result.startCoords.row < targetCoords.row) {
@@ -275,7 +336,7 @@ export default class FieldController extends cc.Component {
 
             if (result.cellToFallFrom.tile) return;
 
-            return findTile();
+            findTile();
         };
 
         findTile();
@@ -286,18 +347,14 @@ export default class FieldController extends cc.Component {
     public createAndDropTileWithDelay(targetCell: Cell, delay: number): void {
         setTimeout(() => {
             const randomColorID: tileColorID = this.randomColorID();
-            let newTile: Tile = targetCell.createTile(tileType.Color, randomColorID);
 
-            const fallFrom = new Coords(targetCell.coords.col, -1);
-            newTile.coords = fallFrom;
+            let newTile: Tile = targetCell.createTile(tileType.Color, randomColorID);
             newTile.node.setParent(this.tileLayer);
 
-            const currentPosition: cc.Vec2 = Coords.getAbsolutePositionFromCoords(fallFrom);
-            const relCurrentPosition: cc.Vec2 = newTile.convertToRelativePosition(currentPosition);
+            const fallFrom = new Coords(targetCell.coords.col, -1);
 
-            newTile.node.setPosition(relCurrentPosition);
-
-            targetCell.attractTile(newTile);
+            targetCell.forceMoveContents(fallFrom);
+            targetCell.attractTile();
         }, delay);
     }
 
@@ -315,7 +372,8 @@ export default class FieldController extends cc.Component {
     }
 
     protected update(): void {
-        // if (!Coords.isInitialized) return;
+        if (!Coords.isInitialized) return;
+
         let hasFoundCombination: boolean = this.checkField();
 
         if (hasFoundCombination) this._lastSwapCells = null;
@@ -328,7 +386,7 @@ export default class FieldController extends cc.Component {
             return;
         }
 
-        this._lastSwapCells[0].swapTiles(this._lastSwapCells[1]);
+        // this._lastSwapCells[0].swapTiles(this._lastSwapCells[1]);
 
         this._lastSwapCells = null;
     }
@@ -339,10 +397,9 @@ export default class FieldController extends cc.Component {
         let coordsFromPosition: Coords = Coords.getCoordsFromAbsolutePosition(mousePosition);
         let cell: Cell = this.getCell(coordsFromPosition);
 
-        // При любом клике снимаем выделения тайла
         this.unselectTile();
 
-        if (!cell || cell.isDisabled || !cell.tile) {
+        if (!cell || !cell.isTileAvailable()) {
             this._clickedCell = null;
             return;
         }
@@ -351,19 +408,21 @@ export default class FieldController extends cc.Component {
 
         // Если между координатами этого и предыдущего нажатий одна клетка, то меняем их местами
         if (distance === 1) {
-            if (this._clickedCell.tile && !this._clickedCell.isBusy && !cell.isBusy) {
-                this._lastSwapCells = [this._clickedCell, cell];
-
-                this._clickedCell.swapTiles(cell);
-            }
+            this.swap(cell, this._clickedCell);
         } else {
-            // Если не меняем местами - начинаем слушать движение мыши
             this._canSwipe = true;
         }
 
+        this._clickedCell = cell;
         // Если меняем местами, либо повторный клик (по одному тайлу),
         // то не считаем за начало нажатия (и не выделяем)
-        this._clickedCell = distance === 1 || distance === 0 ? null : cell;
+        if (distance !== 1 && distance !== 0) return;
+
+        this._clickedCell = null;
+
+        if (cell.tile.type !== tileType.Color && distance === 0) {
+            this.activateBooster(cell);
+        }
     }
 
     private onMouseUp(event: cc.Event.EventMouse): void {
@@ -374,7 +433,7 @@ export default class FieldController extends cc.Component {
         // Конец нажатия - перестаем слушать движения мыши
         this._canSwipe = false;
 
-        if (!this._clickedCell || !cell || cell.isDisabled || !cell.tile) return;
+        if (!this._clickedCell || !cell || !cell.isTileAvailable()) return;
 
         // Если координаты начала и конца клика совпадают - выделяем тайл
         if (this._clickedCell === cell) this.selectTile(cell.tile);
@@ -409,15 +468,105 @@ export default class FieldController extends cc.Component {
 
         let targetCell: Cell = this.getCell(targetCoords);
 
-        if (!targetCell || !targetCell.tile) return;
+        this.swap(targetCell, this._clickedCell);
 
-        if (this._clickedCell.tile && !this._clickedCell.isBusy && !targetCell.isBusy) {
-            this._lastSwapCells = [this._clickedCell, targetCell];
+        if (targetCell && targetCell.tile) this._clickedCell = null;
+    }
 
-            targetCell.swapTiles(this._clickedCell);
+    private swap(cell1: Cell, cell2: Cell): void {
+        if (!cell1 || !cell2 || !cell1.isTileAvailable() || !cell2.isTileAvailable()) return;
+
+        this._lastSwapCells = [cell1, cell2];
+
+        let cell1Tile: Tile = cell1.tile;
+
+        cell1.attractTile(cell2.tile, () => {
+            if (cell2.tile.type !== tileType.Color) this.activateBooster(cell2, cell1);
+        });
+
+        cell2.attractTile(cell1Tile, () => {
+            if (cell1.tile.type !== tileType.Color) this.activateBooster(cell1, cell2);
+        });
+
+        cc.log(`swap: [${cell1.coords.col}, ${cell1.coords.row}], [${cell2.coords.col}, ${cell2.coords.row}]`);
+
+    }
+
+    private activateBooster(boosterCell: Cell, activateOn?: Cell) {
+        const strategies = {
+            [tileType.Rainbow]: {
+                check: (
+                    activateOn && 
+                    (activateOn.tile.type === tileType.Color || activateOn.tile.type === tileType.Rainbow)
+                ),
+                callback: () => {
+                    if (!activateOn.tile) return;
+
+                    if (activateOn.tile.type === tileType.Color) this.removeEveryTileOfColor(activateOn.tile.colorID);
+                    else if (activateOn.tile.type === tileType.Rainbow) this.removeEveryTile();
+                }
+            },
+
+            [tileType.Vertical]: {
+                check: true,
+                callback: () => { this.removeVerticalLine(boosterCell.coords.col) }
+            },
+
+            [tileType.Horizontal]: {
+                check: true,
+                callback: () => { this.removeHorizontalLine(boosterCell.coords.row) }
+            }
+        };
+
+        let strategy = strategies[boosterCell.tile.type];
+
+        if (strategy && strategy.check) boosterCell.removeTile(strategy.callback);
+    }
+
+    private removeEveryTile() {
+        this.everyCell((cell: Cell) => {
+            cell.removeTile();
+        });
+    }
+
+    private removeEveryTileOfColor(targetColor: tileColorID): void {
+        this.everyCell((cell: Cell) => {
+            if (!cell.isTileAvailable() || cell.tile.colorID !== targetColor) return;
+
+            this.removeTileFromCell(cell);
+        });
+    }
+
+    private removeVerticalLine(col: number): void {
+        let currentCell: Cell = null;
+
+        for (let row = 0; row < Coords.fieldSize.width; row++) {
+            currentCell = this.getCell(col, row);
+
+            if (!currentCell) continue;
+
+            this.removeTileFromCell(currentCell);
         }
+    }
 
-        this._clickedCell = null;
+    private removeHorizontalLine(row: number): void {
+        let currentCell: Cell = null;
+
+        for (let col = 0; col < Coords.fieldSize.width; col++) {
+            currentCell = this.getCell(col, row);
+
+            if (!currentCell) continue;
+
+            this.removeTileFromCell(currentCell);
+        }
+    }
+
+    private removeTileFromCell(cell: Cell): void {
+        if (!cell || !cell.tile || cell.isDisabled) return;
+
+        if (cell.tile.type === tileType.Color) return void cell.removeTile();
+
+        this.activateBooster(cell);
     }
 
     private selectTile(tile: Tile): void {
@@ -426,10 +575,11 @@ export default class FieldController extends cc.Component {
     }
 
     private unselectTile(): void {
-        if (this.selectedTile) {
-            this.selectedTile.unselect();
-            this.selectedTile = null;
-        }
+        if (!this.selectedTile) return;
+
+        this.selectedTile.unselect();
+        this.selectedTile = null;
+    
     }
 
     private randomColorID(exeptions?: tileColorID[]): tileColorID {

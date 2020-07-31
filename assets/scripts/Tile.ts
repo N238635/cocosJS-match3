@@ -64,15 +64,15 @@ export default class Tile extends cc.Component {
         }).start();
     }
 
-    public moveTo(targetCoords: Coords, callback?: () => void): void {
-        const absolutePosition: cc.Vec2 = Coords.getAbsolutePositionFromCoords(targetCoords);
+    public moveTo(moveToCoords: Coords, callback?: () => void): void {
+        const absolutePosition: cc.Vec2 = Coords.getAbsolutePositionFromCoords(moveToCoords);
         const targetPosition: cc.Vec2 = this.convertToRelativePosition(absolutePosition);
 
-        const distance: number = Coords.distance(this.coords, targetCoords);
+        const distance: number = Coords.distance(this.coords, moveToCoords);
         const animationTime: number = 0.2;
         const duration: number = animationTime * distance;
 
-        this.coords = targetCoords;
+        this.coords = moveToCoords;
 
         cc.tween(this.node).to(duration, { position: targetPosition }).call(() => {
             if (callback) callback();
