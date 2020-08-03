@@ -8,7 +8,11 @@ const { ccclass, property } = cc._decorator;
 
 @ccclass
 export default class FieldController extends cc.Component {
-
+    @property(cc.Button) bonusButton: cc.Button = null;
+    @property(cc.Button) restartButton: cc.Button = null;
+    @property(cc.Button) exitButton: cc.Button = null;
+    @property(cc.Button) continueButton: cc.Button = null;
+    
     @property(cc.JsonAsset) config: cc.JsonAsset = null;
 
     @property(EndScreen) endScreen: EndScreen = null;
@@ -31,6 +35,7 @@ export default class FieldController extends cc.Component {
 
     private _canSwipe: boolean = false;
     private _isBonusActive: boolean = false;
+    private _isBonusUsed: boolean = false;
     private _isGameOver: boolean = false;
 
     public init(): void {
@@ -41,11 +46,13 @@ export default class FieldController extends cc.Component {
         this.generateRandomTiles();
     }
 
-    public onBonusButton() {
+    public onBonusButton(): void {
+        if (this._isBonusUsed) return;
+
         this._isBonusActive = !this._isBonusActive;
     }
 
-    public onRestartButton() {
+    public onRestartButton(): void {
         this.everyCell((cell: Cell) => {
             cell.removeTile();
         });
@@ -55,11 +62,11 @@ export default class FieldController extends cc.Component {
         this.exitEndScreen();
     }
 
-    public onExitButton() {
+    public onExitButton(): void {
         cc.game.end();
     }
 
-    public onContinueButton() {
+    public onContinueButton(): void {
         this.turnsCounter.count += this.config.json.continueTurns;
 
         this.exitEndScreen();
@@ -69,6 +76,11 @@ export default class FieldController extends cc.Component {
         this.node.on(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
         this.node.on(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
         this.node.on(cc.Node.EventType.MOUSE_MOVE, this.onMouseMove, this);
+
+        if (this.bonusButton) this.bonusButton.node.on('mousedown', this.onBonusButton, this);
+        if (this.restartButton) this.bonusButton.node.on('mousedown', this.onRestartButton, this);
+        if (this.exitButton) this.bonusButton.node.on('mousedown', this.onExitButton, this);
+        if (this.continueButton) this.bonusButton.node.on('mousedown', this.onContinueButton, this);
     }
 
     protected onDisable(): void {
@@ -76,6 +88,10 @@ export default class FieldController extends cc.Component {
         this.node.off(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
         this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onMouseMove, this);
 
+        if (this.bonusButton) this.bonusButton.node.off('mousedown', this.onBonusButton, this);
+        if (this.restartButton) this.bonusButton.node.off('mousedown', this.onRestartButton, this);
+        if (this.exitButton) this.bonusButton.node.off('mousedown', this.onExitButton, this);
+        if (this.continueButton) this.bonusButton.node.off('mousedown', this.onContinueButton, this);
     }
 
     protected update(): void {
@@ -114,7 +130,7 @@ export default class FieldController extends cc.Component {
             return;
         }
 
-        // this.swap(this._lastSwapCells[0], this._lastSwapCells[1]);
+        this.swap(this._lastSwapCells[0], this._lastSwapCells[1]);
 
         this._lastSwapCells = null;
     }
@@ -490,6 +506,7 @@ export default class FieldController extends cc.Component {
         if (this._isBonusActive) {
             this.removeTileFromCell(cell);
             this._isBonusActive = false;
+            this._isBonusUsed = true;
             return;
         }
 
