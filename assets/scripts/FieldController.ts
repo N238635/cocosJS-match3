@@ -43,6 +43,8 @@ export default class FieldController extends cc.Component {
         this.initField();
 
         this.generateRandomTiles();
+
+        this.bonus.recharge();
     }
 
     public onRestartButton(): void {

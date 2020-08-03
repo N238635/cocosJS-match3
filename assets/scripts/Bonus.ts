@@ -4,9 +4,13 @@ const {ccclass, property} = cc._decorator;
 export default class Bonus extends cc.Component {
     public isActive: boolean = false;
 
-    public use() {
+    public use(): void {
         this.isActive = false;
         this.node.active = false;
+    }
+
+    public recharge(): void {
+        this.node.active = true;
     }
 
     protected onEnable() {
