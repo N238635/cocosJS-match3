@@ -325,11 +325,6 @@ export default class FieldController extends cc.Component {
             nextCoords.addSelf(direction);
             nextCell = this.getCell(nextCoords);
 
-            if (combination.length > 2) {
-                let a = [nextCell];
-                cc.log(a, targetColorID);
-            }
-
             if (
                 !nextCell ||
                 !nextCell.isTileAvailable() ||
@@ -435,8 +430,6 @@ export default class FieldController extends cc.Component {
     private dropTile(cellToFallInto: Cell, cellToFallFrom: Cell) {
         if (cellToFallFrom.isBusy) return;
 
-        cellToFallInto.isBusy = true;
-
         cellToFallInto.attractTile(cellToFallFrom.tile);
 
         cellToFallFrom.tile = null;
@@ -448,15 +441,23 @@ export default class FieldController extends cc.Component {
         const randomOptionIndex: number = Math.floor(Math.random() * diagonalOptions.length);
         const diagonalCell = diagonalOptions[randomOptionIndex];
 
+        const previousCell = this.getCell(cellToDropTo.coords.col, cellToDropTo.coords.row + 1);
         const newTargetCell = this.getCell(cellToDropTo.coords.col, diagonalCell.coords.row + 1);
 
-        if (diagonalCell.isBusy) return;
+        const dropTile = () => {
+            newTargetCell.isBusy = false;
+            this.dropTile(newTargetCell, diagonalCell);
+        }
 
-        newTargetCell.isBusy = true;
+        if (previousCell && !previousCell.isTileAvailable()) {
+            newTargetCell.isBusy = true;
 
-        newTargetCell.attractTile(diagonalCell.tile);
+            setTimeout(dropTile, 100);
 
-        diagonalCell.tile = null;
+            return;
+        }
+
+        dropTile();
     }
 
     private createAndDropTileWithDelay(targetCell: Cell, delay: number): void {
@@ -549,8 +550,8 @@ export default class FieldController extends cc.Component {
         const startPosition: cc.Vec2 = this._clickedCell.getAbsolutePosition();
 
         const moved: cc.Vec2 = mousePosition.sub(startPosition);
-        const movedCol: number = moved.x / cell.width;
-        const movedRow: number = moved.y / cell.height;
+        const movedCol: number = moved.x / (cell.width / 2);
+        const movedRow: number = moved.y / (cell.height / 2);
 
         let targetCoords: Coords = this._clickedCell.coords.clone();
 
