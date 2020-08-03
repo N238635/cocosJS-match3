@@ -3,18 +3,19 @@ import Cell from "./Cell";
 import Tile, { tileColorID, tileType, colorsRGB } from "./Tile";
 import Counter from "./Counter";
 import EndScreen from "./EndScreen";
+import Bonus from "./Bonus";
 
 const { ccclass, property } = cc._decorator;
 
 @ccclass
 export default class FieldController extends cc.Component {
-    @property(cc.Button) bonusButton: cc.Button = null;
     @property(cc.Button) restartButton: cc.Button = null;
     @property(cc.Button) exitButton: cc.Button = null;
     @property(cc.Button) continueButton: cc.Button = null;
     
     @property(cc.JsonAsset) config: cc.JsonAsset = null;
-
+    
+    @property(Bonus) bonus: Bonus = null;
     @property(EndScreen) endScreen: EndScreen = null;
     @property(Counter) turnsCounter: Counter = null;
     @property(Counter) taskCounter: Counter = null;
@@ -34,8 +35,6 @@ export default class FieldController extends cc.Component {
     private _lastSwapCells: [Cell, Cell] = null;
 
     private _canSwipe: boolean = false;
-    private _isBonusActive: boolean = false;
-    private _isBonusUsed: boolean = false;
     private _isGameOver: boolean = false;
 
     public init(): void {
@@ -44,12 +43,6 @@ export default class FieldController extends cc.Component {
         this.initField();
 
         this.generateRandomTiles();
-    }
-
-    public onBonusButton(): void {
-        if (this._isBonusUsed) return;
-
-        this._isBonusActive = !this._isBonusActive;
     }
 
     public onRestartButton(): void {
@@ -77,10 +70,9 @@ export default class FieldController extends cc.Component {
         this.node.on(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
         this.node.on(cc.Node.EventType.MOUSE_MOVE, this.onMouseMove, this);
 
-        if (this.bonusButton) this.bonusButton.node.on('mousedown', this.onBonusButton, this);
-        if (this.restartButton) this.bonusButton.node.on('mousedown', this.onRestartButton, this);
-        if (this.exitButton) this.bonusButton.node.on('mousedown', this.onExitButton, this);
-        if (this.continueButton) this.bonusButton.node.on('mousedown', this.onContinueButton, this);
+        if (this.restartButton) this.restartButton.node.on('click', this.onRestartButton, this);
+        if (this.exitButton) this.exitButton.node.on('click', this.onExitButton, this);
+        if (this.continueButton) this.continueButton.node.on('click', this.onContinueButton, this);
     }
 
     protected onDisable(): void {
@@ -88,10 +80,9 @@ export default class FieldController extends cc.Component {
         this.node.off(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
         this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onMouseMove, this);
 
-        if (this.bonusButton) this.bonusButton.node.off('mousedown', this.onBonusButton, this);
-        if (this.restartButton) this.bonusButton.node.off('mousedown', this.onRestartButton, this);
-        if (this.exitButton) this.bonusButton.node.off('mousedown', this.onExitButton, this);
-        if (this.continueButton) this.bonusButton.node.off('mousedown', this.onContinueButton, this);
+        if (this.restartButton) this.restartButton.node.off('click', this.onRestartButton, this);
+        if (this.exitButton) this.exitButton.node.off('click', this.onExitButton, this);
+        if (this.continueButton) this.continueButton.node.off('click', this.onContinueButton, this);
     }
 
     protected update(): void {
@@ -503,10 +494,9 @@ export default class FieldController extends cc.Component {
             return;
         }
 
-        if (this._isBonusActive) {
+        if (this.bonus.isActive) {
             this.removeTileFromCell(cell);
-            this._isBonusActive = false;
-            this._isBonusUsed = true;
+            this.bonus.use();
             return;
         }
 
