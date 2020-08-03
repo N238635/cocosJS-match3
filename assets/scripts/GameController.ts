@@ -1,6 +1,5 @@
 import FieldController from "./FieldController";
 import Coords from "./Coords";
-import EndScreen from "./EndScreen";
 
 const { ccclass, property } = cc._decorator;
 
@@ -18,12 +17,6 @@ export default class GameController extends cc.Component {
         Coords.fieldNode = this.field.node;
         Coords.isInitialized = true;
 
-        this.field.initScoreboard();
-        
-        this.field.initField();
-
-        this.field.generateRandomTiles();
+        this.field.init();
     }
-
-    
 }

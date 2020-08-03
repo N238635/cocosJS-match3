@@ -15,7 +15,7 @@ export default class FieldController extends cc.Component {
     @property(Counter) turnsCounter: Counter = null;
     @property(Counter) taskCounter: Counter = null;
     @property(cc.Node) taskCircle: cc.Node = null;
-    
+
     @property(cc.Node) tileLayer: cc.Node = null;
     @property(cc.Node) cellLayer: cc.Node = null;
 
@@ -23,17 +23,109 @@ export default class FieldController extends cc.Component {
 
     public selectedTile: Tile = null;
     public isChecking: boolean = false;
-    
+
     private _clickedCell: Cell = null;
     private _field: Cell[][] = [];
     private _taskColor: tileColorID = null;
-    private _lastSwapCells: Cell[] = null;
+    private _lastSwapCells: [Cell, Cell] = null;
 
     private _canSwipe: boolean = false;
     private _isBonusActive: boolean = false;
     private _isGameOver: boolean = false;
 
-    public everyCoords(everyCoordsCallback: (coords: Coords) => void, fromLastRow: boolean = false): void {
+    public init(): void {
+        this.initScoreboard();
+
+        this.initField();
+
+        this.generateRandomTiles();
+    }
+
+    public onBonusButton() {
+        this._isBonusActive = !this._isBonusActive;
+    }
+
+    public onRestartButton() {
+        this.everyCell((cell: Cell) => {
+            cell.removeTile();
+        });
+
+        this.init();
+
+        this.exitEndScreen();
+    }
+
+    public onExitButton() {
+        cc.game.end();
+    }
+
+    public onContinueButton() {
+        this.turnsCounter.count += this.config.json.continueTurns;
+
+        this.exitEndScreen();
+    }
+
+    protected onEnable(): void {
+        this.node.on(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        this.node.on(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
+        this.node.on(cc.Node.EventType.MOUSE_MOVE, this.onMouseMove, this);
+    }
+
+    protected onDisable(): void {
+        this.node.off(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        this.node.off(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
+        this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onMouseMove, this);
+
+    }
+
+    protected update(): void {
+        if (!Coords.isInitialized) return;
+
+        if (this.taskCounter.count < 1 && !this._isGameOver) {
+            this._isGameOver = true;
+
+            this.endScreen.showWin();
+
+            cc.log('Победа!');
+        }
+
+        if (this.turnsCounter.count < 1 && !this._isGameOver) {
+            this._isGameOver = true;
+
+            this.endScreen.showLose();
+
+            cc.log('Поражение!');
+        }
+
+        let hasFoundCombination: boolean = this.checkField();
+
+
+        if (hasFoundCombination && this._lastSwapCells) {
+            this.turnsCounter.count--;
+            this._lastSwapCells = null;
+            return;
+        }
+
+        if (
+            !this._lastSwapCells ||
+            this._lastSwapCells[0].isBusy ||
+            this._lastSwapCells[1].isBusy
+        ) {
+            return;
+        }
+
+        // this.swap(this._lastSwapCells[0], this._lastSwapCells[1]);
+
+        this._lastSwapCells = null;
+    }
+
+    private exitEndScreen(): void {
+        this.endScreen.hide();
+
+        this._isGameOver = false;
+    }
+
+    private everyCoords(everyCoordsCallback: (coords: Coords) => void, fromLastRow: boolean = false): void {
         const { field } = this.config.json;
 
         let fromStart = (callback: (row: number) => void): void => {
@@ -41,7 +133,7 @@ export default class FieldController extends cc.Component {
                 callback(row);
             }
         }
-        
+
         let fromEnd = (callback: (row: number) => void): void => {
             for (let row: number = field.rows - 1; row >= 0; row--) {
                 callback(row);
@@ -56,25 +148,25 @@ export default class FieldController extends cc.Component {
             }
         });
     }
-    
-    public everyCell(callback: (cell: Cell) => void, fromLastRow: boolean = false): void {
+
+    private everyCell(callback: (cell: Cell) => void, fromLastRow: boolean = false): void {
         this.everyCoords((coords: Coords) => {
             callback(this.getCell(coords));
         }, fromLastRow);
     }
-    
-    public getCell(coords: Coords | number, row?: number): Cell {
+
+    private getCell(coords: Coords | number, row?: number): Cell {
         const isInvalidType: boolean = typeof (coords) === 'number';
         const col: number = isInvalidType && (coords as number);
-        
+
         let realCoords: Coords = isInvalidType ? new Coords(col, row) : (coords as Coords);
         if (!realCoords) return;
         if (!this._field[realCoords.row]) return;
 
         return this._field[realCoords.row][realCoords.col];
     }
-    
-    public initScoreboard(): void {
+
+    private initScoreboard(): void {
         this._taskColor = this.randomColorID();
         this.taskCircle.color = cc.color(...colorsRGB[this._taskColor]);
 
@@ -82,14 +174,14 @@ export default class FieldController extends cc.Component {
         this.turnsCounter.count = this.config.json.turns;
     }
 
-    public initField(): void {
+    private initField(): void {
         const { field, cell: cellParams } = this.config.json;
         let positionFromCoords: cc.Vec2, cellPosition: cc.Vec2;
         let cell: Cell = null;
-        
+
         this.everyCoords((coords: Coords) => {
             cell = this.createCell(coords);
-            
+
             positionFromCoords = Coords.getAbsolutePositionFromCoords(coords);
             cellPosition = cell.convertToRelativePosition(positionFromCoords);
 
@@ -104,25 +196,16 @@ export default class FieldController extends cc.Component {
         });
     }
 
-    public generateRandomTiles(): void {
+    private generateRandomTiles(): void {
         this.everyCell((cell: Cell) => {
             if (cell.isDisabled) return;
-
-            const cellCoords: Coords = cell.coords;
-            let exeptions: tileColorID[] = [];
 
             const checkDirections = [
                 Coords.left,
                 Coords.up
             ];
 
-            let currentCell: Cell = null;
-
-            checkDirections.forEach((direction) => {
-                currentCell = this.getCell(cellCoords.col + direction.col, cellCoords.row + direction.row);
-
-                if (currentCell && currentCell.isTileAvailable()) exeptions.push(currentCell.tile.colorID);
-            });
+            const exeptions: tileColorID[] = this.getColorExeptions(cell.coords, checkDirections);
 
             let randomColorID: tileColorID = this.randomColorID(exeptions);
 
@@ -133,7 +216,7 @@ export default class FieldController extends cc.Component {
         });
     }
 
-    public checkField() {
+    private checkField() {
         const directions = [
             Coords.right,
             Coords.up
@@ -218,7 +301,7 @@ export default class FieldController extends cc.Component {
         if (combinations.length > 0) return true;
     }
 
-    public checkCombination(targetCell: Cell, direction: Coords): Cell[] {
+    private checkCombination(targetCell: Cell, direction: Coords): Cell[] {
         if (!targetCell.tile || (!targetCell.tile.colorID && targetCell.tile.colorID !== 0)) return [];
 
         const targetColorID: number = targetCell.tile.colorID;
@@ -252,7 +335,7 @@ export default class FieldController extends cc.Component {
         return checkNextTile();
     }
 
-    public fillColumn(targetCell: Cell): void {
+    private fillColumn(targetCell: Cell): void {
         const targetCoords: Coords = targetCell.coords;
 
         const foundResult = this.getCellToFallFrom(targetCoords);
@@ -262,32 +345,13 @@ export default class FieldController extends cc.Component {
         if (!shouldFall) return;
 
         if (cellToFallFrom && cellToFallFrom.tile) {
-            if (cellToFallFrom.isBusy) return;
-
-            targetCell.isBusy = true;
-
-            targetCell.attractTile(cellToFallFrom.tile);
-
-            cellToFallFrom.tile = null;
+            this.dropTile(targetCell, cellToFallFrom);
 
             return;
         }
 
         if (startCoords.row !== -1) {
-            if (diagonalOptions.length === 0) return;
-
-            const randomOptionIndex: number = Math.floor(Math.random() * diagonalOptions.length);
-            const diagonalCell = diagonalOptions[randomOptionIndex];
-
-            const newTargetCell = this.getCell(targetCell.coords.col, diagonalCell.coords.row + 1);
-
-            if (diagonalCell.isBusy) return;
-
-            newTargetCell.isBusy = true;
-
-            newTargetCell.attractTile(diagonalCell.tile);
-
-            diagonalCell.tile = null;
+            this.dropTileFromDiagonalCell(targetCell, diagonalOptions);
 
             return;
         }
@@ -305,7 +369,7 @@ export default class FieldController extends cc.Component {
         }
     }
 
-    public getCellToFallFrom(targetCoords: Coords): {
+    private getCellToFallFrom(targetCoords: Coords): {
         shouldFall: boolean,
         cellToFallFrom: Cell,
         startCoords: Coords,
@@ -359,9 +423,44 @@ export default class FieldController extends cc.Component {
         return result;
     }
 
-    public createAndDropTileWithDelay(targetCell: Cell, delay: number): void {
+    private dropTile(cellToFallInto: Cell, cellToFallFrom: Cell) {
+        if (cellToFallFrom.isBusy) return;
+
+        cellToFallInto.isBusy = true;
+
+        cellToFallInto.attractTile(cellToFallFrom.tile);
+
+        cellToFallFrom.tile = null;
+    }
+
+    private dropTileFromDiagonalCell(cellToDropTo: Cell, diagonalOptions: Cell[]) {
+        if (diagonalOptions.length === 0) return;
+
+        const randomOptionIndex: number = Math.floor(Math.random() * diagonalOptions.length);
+        const diagonalCell = diagonalOptions[randomOptionIndex];
+
+        const newTargetCell = this.getCell(cellToDropTo.coords.col, diagonalCell.coords.row + 1);
+
+        if (diagonalCell.isBusy) return;
+
+        newTargetCell.isBusy = true;
+
+        newTargetCell.attractTile(diagonalCell.tile);
+
+        diagonalCell.tile = null;
+    }
+
+    private createAndDropTileWithDelay(targetCell: Cell, delay: number): void {
+        const checkDirections = [
+            Coords.left,
+            Coords.right,
+            Coords.down
+        ];
+
         setTimeout(() => {
-            const randomColorID: tileColorID = this.randomColorID();
+            const exeptions: tileColorID[] = this.getColorExeptions(targetCell.coords, checkDirections);
+
+            const randomColorID: tileColorID = this.randomColorID(exeptions);
 
             let newTile: Tile = targetCell.createTile(tileType.Color, randomColorID);
             newTile.node.setParent(this.tileLayer);
@@ -371,91 +470,6 @@ export default class FieldController extends cc.Component {
             targetCell.forceMoveContents(fallFrom);
             targetCell.attractTile();
         }, delay);
-    }
-
-    public onBonusButton() {
-        this._isBonusActive = !this._isBonusActive;
-    }
-
-    public onRestartButton() {
-        this.everyCell((cell: Cell) => {
-            cell.removeTile();
-        });
-
-        this.initScoreboard();
-        this.initField();
-
-        this.exitEndScreen();
-    }
-
-    public onExitButton() {
-        cc.game.end();
-    }
-
-    public onContinueButton() {
-        this.turnsCounter.count += this.config.json.continueTurns;
-
-        this.exitEndScreen();
-    }
-
-    protected onEnable(): void {
-        this.node.on(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
-        this.node.on(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
-        this.node.on(cc.Node.EventType.MOUSE_MOVE, this.onMouseMove, this);
-    }
-
-    protected onDisable(): void {
-        this.node.off(cc.Node.EventType.MOUSE_DOWN, this.onMouseDown, this);
-        this.node.off(cc.Node.EventType.MOUSE_UP, this.onMouseUp, this);
-        this.node.off(cc.Node.EventType.MOUSE_MOVE, this.onMouseMove, this);
-
-    }
-
-    protected update(): void {
-        if (!Coords.isInitialized) return;
-
-        if (this.taskCounter.count === 0 && !this._isGameOver) {
-            this._isGameOver = true;
-
-            this.endScreen.showWin();
-
-            cc.log('Победа!');
-        }
-
-        if (this.turnsCounter.count === 0 && !this._isGameOver) {
-            this._isGameOver = true;
-
-            this.endScreen.showLose();
-
-            cc.log('Поражение!');
-        }
-
-        let hasFoundCombination: boolean = this.checkField();
-
-
-        if (hasFoundCombination && this._lastSwapCells) {
-            this.turnsCounter.count--;
-            this._lastSwapCells = null;
-            return;
-        }
-
-        if (
-            !this._lastSwapCells ||
-            this._lastSwapCells[0].isBusy ||
-            this._lastSwapCells[1].isBusy
-        ) {
-            return;
-        }
-
-        // this._lastSwapCells[0].swapTiles(this._lastSwapCells[1]);
-
-        this._lastSwapCells = null;
-    }
-
-    private exitEndScreen(): void {
-        this.endScreen.hide();
-
-        this._isGameOver = false;
     }
 
     // TODO Если swap не произошел - отменяем выделение, не начинаем onMouseMove!
@@ -575,7 +589,7 @@ export default class FieldController extends cc.Component {
         const strategies = {
             [tileType.Rainbow]: {
                 check: (
-                    activateOn && 
+                    activateOn &&
                     (activateOn.tile.type === tileType.Color || activateOn.tile.type === tileType.Rainbow)
                 ),
                 callback: () => {
@@ -662,7 +676,20 @@ export default class FieldController extends cc.Component {
 
         this.selectedTile.unselect();
         this.selectedTile = null;
-    
+
+    }
+
+    private getColorExeptions(targetCoords: Coords, checkDirections: Coords[]): tileColorID[] {
+        let exeptions: tileColorID[] = [];
+        let currentCell: Cell = null;
+
+        checkDirections.forEach((direction) => {
+            currentCell = this.getCell(targetCoords.add(direction));
+
+            if (currentCell && currentCell.tile) exeptions.push(currentCell.tile.colorID);
+        });
+
+        return exeptions;
     }
 
     private randomColorID(exeptions?: tileColorID[]): tileColorID {
