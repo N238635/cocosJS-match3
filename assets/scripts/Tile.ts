@@ -3,19 +3,19 @@ import Coords from "./Coords";
 const { ccclass, property } = cc._decorator;
 
 export enum tileColorID {
-    Yellow = 0,
-    Red = 1,
-    Blue = 2,
-    Purple = 3,
-    Green = 4,
-    Orange = 5
+    Yellow,
+    Red,
+    Blue,
+    Purple,
+    Green,
+    Orange
 }
 
 export enum tileType {
-    Color = 0,
-    Vertical = 1,
-    Horizontal = 2,
-    Rainbow = 3
+    Color,
+    Vertical,
+    Horizontal,
+    Rainbow
 }
 
 export const colorsRGB = {
