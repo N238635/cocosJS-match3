@@ -70,7 +70,7 @@ export default class Tile extends cc.Component {
 
         const distance: number = Coords.distance(this.coords, moveToCoords);
         const animationTime: number = 0.2;
-        const duration: number = animationTime * distance;
+        const duration: number = animationTime * Math.floor(distance);
 
         this.coords = moveToCoords;
 

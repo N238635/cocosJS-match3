@@ -428,7 +428,7 @@ export default class FieldController extends cc.Component {
     }
 
     private dropTile(cellToFallInto: Cell, cellToFallFrom: Cell) {
-        if (cellToFallFrom.isBusy) return;
+        if (!cellToFallFrom.isTileAvailable()) return;
 
         cellToFallInto.attractTile(cellToFallFrom.tile);
 
@@ -452,7 +452,7 @@ export default class FieldController extends cc.Component {
         if (previousCell && !previousCell.isTileAvailable()) {
             newTargetCell.isBusy = true;
 
-            setTimeout(dropTile, 100);
+            setTimeout(dropTile, 200);
 
             return;
         }
