@@ -19,12 +19,12 @@ export enum tileType {
 }
 
 export const colorsRGB = {
-    0: [255, 255, 0],
-    1: [255, 0, 0],
-    2: [0, 0, 255],
-    3: [128, 0, 128],
-    4: [0, 128, 0],
-    5: [255, 165, 0]
+    [tileColorID.Yellow]: [255, 255, 0],
+    [tileColorID.Red]: [255, 0, 0],
+    [tileColorID.Blue]: [0, 0, 255],
+    [tileColorID.Purple]: [128, 0, 128],
+    [tileColorID.Green]: [0, 175, 0],
+    [tileColorID.Orange]: [225, 165, 0]
 };
 
 @ccclass
