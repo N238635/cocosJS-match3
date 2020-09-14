@@ -1,4 +1,4 @@
-# Three In Line
+# Match 3
 
 Basic game made in Cocos Creator with TypeScript
 
